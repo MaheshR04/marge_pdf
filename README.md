@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # MergeMate - PDF Merger (React + Tailwind + Node + MongoDB)
 
 A fast starter project to merge multiple files with a clean UI, working authentication, and a real downloadable merged PDF.
@@ -86,3 +87,6 @@ Open:
 - Supported formats: PDF and Word (`.docx`).
 - If login/register fails, verify MongoDB URI and backend `.env`.
 - If CORS issue appears, ensure `CLIENT_URL` is `http://localhost:5173`.
+=======
+# merge_pdf
+>>>>>>> 5f7791a57bd1d4e9d2b717b97759f14e776c1518
