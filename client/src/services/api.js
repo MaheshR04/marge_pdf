@@ -41,9 +41,24 @@ export async function loginUser(payload) {
   return response.json();
 }
 
-export async function mergePdfs(files, token) {
+function getDownloadFileName(response, outputFormat, mode) {
+  const fallbackPrefix = mode === "convert" ? "converted" : "merged";
+  const fallbackName = `${fallbackPrefix}.${outputFormat}`;
+  const contentDisposition = response.headers.get("content-disposition") || "";
+  const match = contentDisposition.match(/filename="?([^"]+)"?/i);
+  const headerName = match?.[1] || fallbackName;
+  const expectedExtension = `.${outputFormat}`;
+
+  return headerName.toLowerCase().endsWith(expectedExtension)
+    ? headerName
+    : `${headerName.replace(/\.[^.]+$/, "")}${expectedExtension}`;
+}
+
+export async function mergePdfs(files, token, outputFormat = "pdf", mode = "merge") {
   const formData = new FormData();
   files.forEach((file) => formData.append("pdfs", file));
+  formData.append("outputFormat", outputFormat);
+  formData.append("mode", mode);
 
   const response = await request("/pdf/merge", {
     method: "POST",
@@ -53,11 +68,8 @@ export async function mergePdfs(files, token) {
     body: formData
   });
 
-  const contentDisposition = response.headers.get("content-disposition") || "";
-  const match = contentDisposition.match(/filename="?([^"]+)"?/i);
-  const fileName = match?.[1] || "merged.pdf";
+  const fileName = getDownloadFileName(response, outputFormat, mode);
   const blob = await response.blob();
 
   return { blob, fileName };
 }
-

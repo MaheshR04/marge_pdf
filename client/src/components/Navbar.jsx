@@ -23,6 +23,9 @@ export default function Navbar() {
             <a href="#merge" className="transition hover:text-brand-700">
               Merge PDFs
             </a>
+            <a href="#convert-pdf" className="transition hover:text-brand-700">
+              Convert PDF
+            </a>
             <a href="#features" className="transition hover:text-brand-700">
               Features
             </a>
@@ -65,4 +68,3 @@ export default function Navbar() {
     </>
   );
 }
-

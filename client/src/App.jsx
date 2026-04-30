@@ -15,11 +15,11 @@ export default function App() {
               PDF Utility
             </p>
             <h1 className="mt-4 text-4xl font-extrabold leading-tight text-slate-900 sm:text-5xl">
-              Merge PDFs with a clean workflow and reliable downloads
+              Merge files and photos with reliable downloads
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg">
-              Register or login, upload your files, and generate one final PDF in
-              a single click.
+              Register or login, upload your PDFs, Word files, and photos, then
+              generate a final PDF or Word file in a single click.
             </p>
           </div>
         </section>

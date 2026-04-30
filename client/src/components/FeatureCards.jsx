@@ -2,7 +2,12 @@ const features = [
   {
     title: "Fast Merge",
     description:
-      "Upload multiple PDF and DOCX files and combine them in seconds with stable ordering."
+      "Upload PDFs, DOCX files, and photos, then combine them in seconds with stable ordering."
+  },
+  {
+    title: "Convert PDF",
+    description:
+      "Convert a single supported file into PDF or Word without needing a second upload."
   },
   {
     title: "Secure Access",
@@ -12,14 +17,14 @@ const features = [
   {
     title: "One-Click Download",
     description:
-      "Merged file is generated on backend and downloaded directly as a PDF."
+      "Merged or converted file is generated on backend and downloaded directly as PDF or Word."
   }
 ];
 
 export default function FeatureCards() {
   return (
     <section id="features" className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6">
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         {features.map((feature) => (
           <article
             key={feature.title}
