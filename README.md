@@ -1,33 +1,89 @@
-<<<<<<< HEAD
-# MergeMate - PDF Merger (React + Tailwind + Node + MongoDB)
+# MergeMate - Smart PDF Merger
 
-A fast starter project to merge multiple files with a clean UI, working authentication, and a real downloadable merged PDF.
+MergeMate is a full-stack file utility for merging and converting supported files through a clean authenticated web interface.
 
-## Stack
+Live website: https://marge-pdf.vercel.app/
 
-- Frontend: React + Vite + Tailwind CSS
-- Backend: Node.js + Express
-- Auth: JWT + bcrypt
-- Database: MongoDB Atlas (via Mongoose)
-- PDF Merge: `pdf-lib` + `multer` (memory upload)
+## Overview
+
+Users can register or log in, upload supported files, merge multiple files into one output, or convert a single supported file into another downloadable format.
+
+The project is deployed with:
+
+- Frontend: Vercel
+- Backend API: Render
+- Database: MongoDB Atlas
+
+## Features
+
+- User registration and login with JWT authentication
+- Merge mode for combining two or more files
+- Convert mode for processing one file
+- Drag-and-drop file upload
+- Supports PDF, Word `.docx`, PNG, JPG, and JPEG uploads
+- Download output as PDF or Word `.docx`
+- Backend file handling with memory uploads
+- CORS configured for the deployed Vercel frontend
+
+## Important Note
+
+PDF output is the best option for preserving PDF pages.
+
+Current Word output can include Word text and images, but PDF-to-Word does not yet create a fully editable Word version of PDF page content. A dedicated PDF extraction/conversion engine would be needed for high-quality editable PDF-to-Word conversion.
+
+## Tech Stack
+
+- React
+- Vite
+- Tailwind CSS
+- Node.js
+- Express
+- MongoDB Atlas
+- Mongoose
+- JWT
+- bcrypt
+- multer
+- pdf-lib
+- mammoth
 
 ## Project Structure
 
 ```text
 merge_pdf/
-  client/   -> React UI
-  server/   -> API + Auth + PDF merge
+  client/   -> React + Vite frontend
+  server/   -> Express API, authentication, file merge/convert routes
 ```
 
-## 1) Backend Setup
+## Live URLs
+
+Frontend:
+
+```text
+https://marge-pdf.vercel.app/
+```
+
+Backend:
+
+```text
+https://marge-pdf-backend.onrender.com/
+```
+
+API base URL used by frontend:
+
+```text
+https://marge-pdf-backend.onrender.com/api
+```
+
+## Local Setup
+
+### Backend
 
 ```bash
 cd server
 npm install
-copy .env.example .env
 ```
 
-Update `server/.env`:
+Create `server/.env`:
 
 ```env
 PORT=5000
@@ -42,15 +98,20 @@ Run backend:
 npm run dev
 ```
 
-## 2) Frontend Setup
+Backend health check:
+
+```text
+http://localhost:5000/
+```
+
+### Frontend
 
 ```bash
 cd client
 npm install
-copy .env.example .env
 ```
 
-Update `client/.env`:
+Create `client/.env`:
 
 ```env
 VITE_API_BASE_URL=http://localhost:5000/api
@@ -64,29 +125,69 @@ npm run dev
 
 Open:
 
-- Frontend: `http://localhost:5173`
-- Backend Health: `http://localhost:5000/`
+```text
+http://localhost:5173
+```
 
-## Working Features
+## Deployment Setup
 
-- Component-based React UI with responsive navbar and polished styling
-- Functional Register and Login connected to MongoDB Atlas
-- JWT-based authenticated sessions
-- Upload multiple files (PDF + Word `.docx`) and merge on server
-- Download button returns and downloads merged PDF correctly
+### Render Backend
+
+Deploy the `server` folder as a Render Web Service.
+
+Render settings:
+
+```text
+Root Directory: server
+Build Command: npm install
+Start Command: npm start
+```
+
+Render environment variables:
+
+```env
+MONGODB_URI=your_mongodb_atlas_connection_string
+JWT_SECRET=your_secret_key
+CLIENT_URL=https://marge-pdf.vercel.app
+```
+
+### Vercel Frontend
+
+Deploy the `client` folder to Vercel.
+
+Vercel settings:
+
+```text
+Root Directory: client
+Build Command: npm run build
+Output Directory: dist
+Install Command: npm install
+```
+
+Vercel environment variable:
+
+```env
+VITE_API_BASE_URL=https://marge-pdf-backend.onrender.com/api
+```
+
+After changing environment variables, redeploy the Vercel project.
 
 ## API Endpoints
 
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `POST /api/pdf/merge` (requires bearer token)
+```text
+POST /api/auth/register
+POST /api/auth/login
+POST /api/pdf/merge
+```
 
-## Notes
+`POST /api/pdf/merge` requires a bearer token.
 
-- Merge requires at least 2 files.
-- Supported formats: PDF and Word (`.docx`).
-- If login/register fails, verify MongoDB URI and backend `.env`.
-- If CORS issue appears, ensure `CLIENT_URL` is `http://localhost:5173`.
-=======
-# merge_pdf
->>>>>>> 5f7791a57bd1d4e9d2b717b97759f14e776c1518
+## Usage
+
+1. Open https://marge-pdf.vercel.app/
+2. Register or log in.
+3. Choose Merge PDFs or Convert PDF.
+4. Upload supported files.
+5. Select PDF or Word output.
+6. Generate and download the final file.
+
