@@ -29,7 +29,7 @@ The project is deployed with:
 
 PDF output is the best option for preserving PDF pages.
 
-Current Word output can include Word text and images, but PDF-to-Word does not yet create a fully editable Word version of PDF page content. A dedicated PDF extraction/conversion engine would be needed for high-quality editable PDF-to-Word conversion.
+Word output can include extracted text from Word and text-based PDF files, plus uploaded images. Scanned/image-only PDFs need OCR for editable text extraction.
 
 ## Tech Stack
 
@@ -190,4 +190,3 @@ POST /api/pdf/merge
 4. Upload supported files.
 5. Select PDF or Word output.
 6. Generate and download the final file.
-

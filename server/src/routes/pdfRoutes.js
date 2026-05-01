@@ -2,6 +2,7 @@ import express from "express";
 import multer from "multer";
 import mammoth from "mammoth";
 import zlib from "zlib";
+import { PDFParse } from "pdf-parse";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 
@@ -84,15 +85,13 @@ function wrapTextToWidth(text, font, fontSize, maxWidth) {
   return lines.length > 0 ? lines : [""];
 }
 
-async function createPdfFromText(text, sourceName) {
+async function createPdfFromText(text) {
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
-  const boldFont = await pdf.embedFont(StandardFonts.HelveticaBold);
 
   const pageWidth = 595;
   const pageHeight = 842;
   const margin = 50;
-  const titleSize = 14;
   const bodySize = 11;
   const lineHeight = 16;
   const maxTextWidth = pageWidth - margin * 2;
@@ -110,14 +109,6 @@ async function createPdfFromText(text, sourceName) {
 
   let page = pdf.addPage([pageWidth, pageHeight]);
   let y = pageHeight - margin;
-
-  page.drawText(`Converted from Word: ${sourceName}`, {
-    x: margin,
-    y,
-    size: titleSize,
-    font: boldFont
-  });
-  y -= 30;
 
   for (const line of contentLines) {
     if (y < margin) {
@@ -171,7 +162,7 @@ async function convertInputToPdfBuffer(file) {
 
   if (isDocxFile(file)) {
     const result = await mammoth.extractRawText({ buffer: file.buffer });
-    const pdfBytes = await createPdfFromText(result.value, file.originalname);
+    const pdfBytes = await createPdfFromText(result.value);
     return Buffer.from(pdfBytes);
   }
 
@@ -328,7 +319,31 @@ function createZip(entries) {
   return Buffer.concat([...localParts, ...centralParts, end]);
 }
 
-export async function createDocxFromFiles(files) {
+async function extractPdfText(file) {
+  const parser = new PDFParse({ data: file.buffer });
+
+  try {
+    const result = await parser.getText({ pageJoiner: "\n" });
+    return result.text?.trim() || "No readable text found in this PDF file.";
+  } finally {
+    await parser.destroy();
+  }
+}
+
+function addTextToDocx(bodyParts, text) {
+  const paragraphs = (text || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const safeParagraphs =
+    paragraphs.length > 0 ? paragraphs : ["No readable text found in this file."];
+
+  safeParagraphs.forEach((paragraph) => bodyParts.push(docxParagraph(paragraph)));
+}
+
+export async function createDocxFromFiles(files, options = {}) {
+  const includeFileHeadings = options.includeFileHeadings ?? files.length > 1;
   const mediaEntries = [];
   const relationshipEntries = [];
   const contentTypes = [
@@ -350,12 +365,10 @@ export async function createDocxFromFiles(files) {
 
     if (isDocxFile(file)) {
       const result = await mammoth.extractRawText({ buffer: file.buffer });
-      bodyParts.push(docxHeading(file.originalname));
-      const paragraphs = (result.value || "No readable text found in this Word file.")
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter(Boolean);
-      paragraphs.forEach((paragraph) => bodyParts.push(docxParagraph(paragraph)));
+      if (includeFileHeadings) {
+        bodyParts.push(docxHeading(file.originalname));
+      }
+      addTextToDocx(bodyParts, result.value || "No readable text found in this Word file.");
       continue;
     }
 
@@ -363,7 +376,9 @@ export async function createDocxFromFiles(files) {
       const extension = isPngFile(file) ? "png" : "jpg";
       const mediaPath = `word/media/image${imageIndex}.${extension}`;
       const relId = `rId${relIndex}`;
-      bodyParts.push(docxHeading(file.originalname));
+      if (includeFileHeadings) {
+        bodyParts.push(docxHeading(file.originalname));
+      }
       bodyParts.push(docxImage(relId, file, imageIndex));
       mediaEntries.push({ path: mediaPath, data: file.buffer });
       relationshipEntries.push(
@@ -375,8 +390,11 @@ export async function createDocxFromFiles(files) {
     }
 
     if (isPdfFile(file)) {
-      bodyParts.push(docxHeading(file.originalname));
-      bodyParts.push(docxParagraph("This PDF file is included in the PDF download. Choose PDF format to preserve its pages."));
+      if (includeFileHeadings) {
+        bodyParts.push(docxHeading(file.originalname));
+      }
+      const text = await extractPdfText(file);
+      addTextToDocx(bodyParts, text);
       continue;
     }
 
@@ -416,7 +434,9 @@ router.post("/merge", authMiddleware, upload.array("pdfs", 20), async (req, res)
     }
 
     if (outputFormat === "docx") {
-      const docxBuffer = await createDocxFromFiles(files);
+      const docxBuffer = await createDocxFromFiles(files, {
+        includeFileHeadings: mode !== "convert"
+      });
       const fileName = `${mode === "convert" ? "converted" : "merged"}-${Date.now()}.docx`;
       res.setHeader(
         "Content-Type",
