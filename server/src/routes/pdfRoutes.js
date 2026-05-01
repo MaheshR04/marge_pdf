@@ -2,7 +2,7 @@ import express from "express";
 import multer from "multer";
 import mammoth from "mammoth";
 import zlib from "zlib";
-import { PDFParse } from "pdf-parse";
+import PDFParse from "pdf-parse";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 
