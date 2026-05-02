@@ -2,8 +2,23 @@ import express from "express";
 import multer from "multer";
 import mammoth from "mammoth";
 import zlib from "zlib";
+import { createRequire } from "module";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import { authMiddleware } from "../middleware/authMiddleware.js";
+import { execFile as execFileCb } from "child_process";
+import util from "util";
+import fs from "fs/promises";
+import path, { dirname } from "path";
+import os from "os";
+import { v4 as uuidv4 } from "uuid";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const require = createRequire(import.meta.url);
+const pdfParse = require("pdf-parse");
+const execFile = util.promisify(execFileCb);
 
 const router = express.Router();
 
@@ -319,9 +334,33 @@ function createZip(entries) {
 }
 
 async function extractPdfText(file) {
-  // For now, return a placeholder message
-  // PDF text extraction would require pdf-parse or similar
-  return "PDF content included in merge.";
+  try {
+    const pdfData = await pdfParse(file.buffer);
+    return pdfData.text.trim() || "No readable text found in this PDF file.";
+  } catch (error) {
+    console.error("Error extracting PDF text:", error.message);
+    return "No readable text found in this PDF file.";
+  }
+}
+
+async function convertPdfToDocxPython(pdfBuffer) {
+  const tmpDir = os.tmpdir();
+  const id = uuidv4();
+  const pdfPath = path.join(tmpDir, `${id}.pdf`);
+  const docxPath = path.join(tmpDir, `${id}.docx`);
+
+  try {
+    await fs.writeFile(pdfPath, pdfBuffer);
+    const pythonScript = path.join(__dirname, "../utils/pdfToWord.py");
+    
+    await execFile("python", [pythonScript, pdfPath, docxPath]);
+    
+    const docxBuffer = await fs.readFile(docxPath);
+    return docxBuffer;
+  } finally {
+    try { await fs.unlink(pdfPath); } catch (e) {}
+    try { await fs.unlink(docxPath); } catch (e) {}
+  }
 }
 
 function addTextToDocx(bodyParts, text) {
@@ -428,9 +467,23 @@ router.post("/merge", authMiddleware, upload.array("pdfs", 20), async (req, res)
     }
 
     if (outputFormat === "docx") {
-      const docxBuffer = await createDocxFromFiles(files, {
-        includeFileHeadings: mode !== "convert"
-      });
+      let docxBuffer;
+      
+      if (mode === "convert" && files.length === 1 && isPdfFile(files[0])) {
+        try {
+          docxBuffer = await convertPdfToDocxPython(files[0].buffer);
+        } catch (err) {
+          console.error("Python conversion failed, falling back to basic extraction", err);
+          docxBuffer = await createDocxFromFiles(files, {
+            includeFileHeadings: mode !== "convert"
+          });
+        }
+      } else {
+        docxBuffer = await createDocxFromFiles(files, {
+          includeFileHeadings: mode !== "convert"
+        });
+      }
+
       const fileName = `${mode === "convert" ? "converted" : "merged"}-${Date.now()}.docx`;
       res.setHeader(
         "Content-Type",
