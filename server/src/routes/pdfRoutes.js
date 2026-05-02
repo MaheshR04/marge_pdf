@@ -353,7 +353,11 @@ async function convertPdfToDocxPython(pdfBuffer) {
     await fs.writeFile(pdfPath, pdfBuffer);
     const pythonScript = path.join(__dirname, "../utils/pdfToWord.py");
     
-    await execFile("python", [pythonScript, pdfPath, docxPath]);
+    try {
+      await execFile("python3", [pythonScript, pdfPath, docxPath]);
+    } catch (err) {
+      await execFile("python", [pythonScript, pdfPath, docxPath]);
+    }
     
     const docxBuffer = await fs.readFile(docxPath);
     return docxBuffer;
