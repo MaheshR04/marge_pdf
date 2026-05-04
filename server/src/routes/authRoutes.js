@@ -1,5 +1,5 @@
 import express from "express";
-import bcrypt from "bcryptjs";
+import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
@@ -27,15 +27,22 @@ router.post("/register", async (req, res) => {
         .json({ message: "Password must be at least 6 characters." });
     }
 
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    const cleanEmail = email.toLowerCase().trim();
+    const cleanName = name.trim();
+
+    // Run password hashing and email check in parallel to save time
+    const [existingUser, hashedPassword] = await Promise.all([
+      User.findOne({ email: cleanEmail }),
+      bcrypt.hash(password, 10)
+    ]);
+
     if (existingUser) {
       return res.status(409).json({ message: "Email already registered." });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
     const user = await User.create({
-      name: name.trim(),
-      email: email.toLowerCase().trim(),
+      name: cleanName,
+      email: cleanEmail,
       password: hashedPassword
     });
 
