@@ -247,7 +247,7 @@ export default function MergePanel({ initialMode, hideTabs }) {
                 onDragOver={onDragOver}
                 onDragLeave={onDragLeave}
                 onClick={() => document.getElementById('fileInput').click()}
-                className={`relative cursor-pointer overflow-hidden rounded-[24px] border-2 border-dashed p-10 text-center transition-all ${
+                className={`relative cursor-pointer overflow-hidden rounded-[24px] border-2 border-dashed p-6 sm:p-10 text-center transition-all ${
                   isDragging
                     ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20"
                     : "border-slate-200 bg-slate-50/50 hover:border-indigo-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900/30 dark:hover:border-indigo-500"

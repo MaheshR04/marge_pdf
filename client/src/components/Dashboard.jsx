@@ -87,6 +87,18 @@ const ArrowRightIcon = ({ className }) => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
   </svg>
 );
+
+const MenuIcon = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+  </svg>
+);
+
+const XMarkIcon = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+  </svg>
+);
 const MoreIcon = ({ className }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
@@ -103,6 +115,7 @@ export default function Dashboard() {
   const { isDarkMode, toggleDarkMode } = useTheme();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [authMode, setAuthMode] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const recentFiles = [
     { name: "Project_Proposal.pdf", size: "2.4 MB", time: "2 minutes ago", type: "pdf" },
@@ -121,52 +134,60 @@ export default function Dashboard() {
     <div className="flex min-h-screen bg-slate-50 font-sans text-slate-900 transition-colors dark:bg-slate-900 dark:text-white">
       <AuthModal mode={authMode} onClose={() => setAuthMode(null)} />
       
+      {/* Mobile Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-full w-72 border-r border-slate-200 bg-white p-5 shadow-sm dark:bg-slate-800 dark:border-slate-700">
-        <div className="mb-8 flex items-center gap-3 px-1">
-          <div className="flex size-9 items-center justify-center rounded-xl bg-indigo-600 text-white font-bold text-lg shadow-indigo-200 shadow-lg">
-            PF
+      <aside className={`fixed left-0 top-0 z-50 h-full w-72 transform border-r border-slate-200 bg-white p-5 shadow-sm transition-transform duration-300 dark:bg-slate-800 dark:border-slate-700 lg:static lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="mb-8 flex items-center justify-between px-1">
+          <div className="flex items-center gap-3">
+            <div className="flex size-9 items-center justify-center rounded-xl bg-indigo-600 text-white font-bold text-lg shadow-indigo-200 shadow-lg">
+              PF
+            </div>
+            <span className="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white">PDF Tools</span>
           </div>
-          <span className="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white">PDF Tools</span>
+          <button 
+            onClick={() => setIsSidebarOpen(false)}
+            className="rounded-lg p-1 text-slate-500 hover:bg-slate-100 lg:hidden dark:hover:bg-slate-700"
+          >
+            <XMarkIcon className="size-6" />
+          </button>
         </div>
 
         <nav className="space-y-1">
-          <SidebarItem icon={DashboardIcon} label="Dashboard" active={activeTab === "dashboard"} onClick={() => setActiveTab("dashboard")} />
-          <SidebarItem icon={MergeIcon} label="Merge PDF" active={activeTab === "merge"} onClick={() => handleToolClick("merge")} />
-          <SidebarItem icon={ConvertIcon} label="Convert" active={activeTab === "convert"} onClick={() => handleToolClick("convert")} />
-          <SidebarItem icon={TrashIcon} label="Remove Page" active={activeTab === "remove"} onClick={() => handleToolClick("remove")} />
+          <SidebarItem icon={DashboardIcon} label="Dashboard" active={activeTab === "dashboard"} onClick={() => { setActiveTab("dashboard"); setIsSidebarOpen(false); }} />
+          <SidebarItem icon={MergeIcon} label="Merge PDF" active={activeTab === "merge"} onClick={() => { handleToolClick("merge"); setIsSidebarOpen(false); }} />
+          <SidebarItem icon={ConvertIcon} label="Convert" active={activeTab === "convert"} onClick={() => { handleToolClick("convert"); setIsSidebarOpen(false); }} />
+          <SidebarItem icon={TrashIcon} label="Remove Page" active={activeTab === "remove"} onClick={() => { handleToolClick("remove"); setIsSidebarOpen(false); }} />
           <div className="my-6 border-t border-slate-100 dark:border-slate-700" />
-          <SidebarItem icon={HistoryIcon} label="Recent Files" active={activeTab === "recent"} onClick={() => setActiveTab("recent")} />
-          <SidebarItem icon={SettingsIcon} label="Settings" active={activeTab === "settings"} onClick={() => setActiveTab("settings")} />
+          <SidebarItem icon={HistoryIcon} label="Recent Files" active={activeTab === "recent"} onClick={() => { setActiveTab("recent"); setIsSidebarOpen(false); }} />
+          <SidebarItem icon={SettingsIcon} label="Settings" active={activeTab === "settings"} onClick={() => { setActiveTab("settings"); setIsSidebarOpen(false); }} />
         </nav>
 
-        <div className="absolute bottom-6 left-6 right-6">
-          <div className="relative mb-6 rounded-2xl bg-indigo-50 p-5 overflow-hidden dark:bg-indigo-900/20">
-            <div className="absolute -right-4 -top-4 size-16 rounded-full bg-indigo-100/50 dark:bg-indigo-800/30" />
-            <CrownIcon className="mb-3 size-6 text-amber-500" />
-            <h4 className="mb-1 text-sm font-bold text-slate-900 dark:text-white">Upgrade to Pro</h4>
-            <p className="mb-4 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">Unlock unlimited access and premium features.</p>
-            <button className="w-full rounded-xl bg-indigo-600 py-2.5 text-xs font-bold text-white shadow-md shadow-indigo-100 transition-all hover:bg-indigo-700">
-              Upgrade Now
-            </button>
-          </div>
-
-          <div>
-            <div className="mb-2 flex items-center justify-between text-[11px] font-medium text-slate-500">
-              <span>Storage Used</span>
-              <span>2.4 GB / 10 GB</span>
-            </div>
-            <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-700">
-              <div className="h-full w-[24%] rounded-full bg-indigo-500" />
-            </div>
-          </div>
-        </div>
       </aside>
 
       {/* Main Content */}
-      <main className="ml-72 flex-1 p-10">
+      <main className="flex-1 p-4 lg:p-10">
+        {/* Mobile Top Bar */}
+        <div className="mb-6 flex items-center justify-between lg:hidden">
+           <button 
+             onClick={() => setIsSidebarOpen(true)}
+             className="rounded-xl border border-slate-200 bg-white p-2 text-slate-600 shadow-sm dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
+           >
+             <MenuIcon className="size-6" />
+           </button>
+           <div className="flex size-9 items-center justify-center rounded-xl bg-indigo-600 text-white font-bold text-lg shadow-indigo-200 shadow-lg">
+             PF
+           </div>
+        </div>
+
         {/* Header */}
-        <header className="mb-6 flex items-center justify-between">
+        <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
               {activeTab === "merge" ? "Merge PDF" : 
@@ -206,11 +227,11 @@ export default function Dashboard() {
         {activeTab === "dashboard" ? (
           <>
             {/* Hero Section */}
-            <section className="relative mb-8 overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-blue-500 p-8 text-white shadow-xl shadow-indigo-100">
+            <section className="relative mb-8 overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-blue-500 p-6 sm:p-10 text-white shadow-xl shadow-indigo-100">
               <div className="relative z-10 max-w-lg">
-                <span className="mb-3 inline-block text-xs font-medium opacity-80 uppercase tracking-wider">Easy. Fast. Secure.</span>
-                <h2 className="mb-3 text-3xl font-extrabold leading-tight">All-in-One PDF Tools</h2>
-                <p className="mb-6 text-base opacity-80">Merge, convert, and organize your PDF files with ease.</p>
+                <span className="mb-2 inline-block text-[10px] font-bold uppercase tracking-wider opacity-80 sm:mb-3 sm:text-xs">Easy. Fast. Secure.</span>
+                <h2 className="mb-3 text-2xl font-extrabold leading-tight sm:text-4xl">All-in-One PDF Tools</h2>
+                <p className="mb-6 text-sm leading-relaxed opacity-90 sm:text-base">Merge, convert, and organize your PDF files with ease. Fast, secure, and works in your browser.</p>
               </div>
               
               <div className="absolute -bottom-8 -right-8 size-64 rotate-12 opacity-10">
