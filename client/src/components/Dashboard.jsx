@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import MergePanel from "./MergePanel";
 import AuthModal from "./AuthModal";
 
@@ -8,8 +9,8 @@ const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
     onClick={onClick}
     className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-all ${
       active
-        ? "bg-indigo-50 text-indigo-600 shadow-sm"
-        : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+        ? "bg-indigo-50 text-indigo-600 shadow-sm dark:bg-indigo-900/30 dark:text-indigo-400"
+        : "text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
     }`}
   >
     <Icon className={`size-[18px] ${active ? "text-indigo-600" : "text-slate-400"}`} />
@@ -18,18 +19,18 @@ const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
 );
 
 const ToolCard = ({ icon: Icon, title, description, buttonText, buttonColor, onClick }) => (
-  <div className="flex flex-col items-center rounded-3xl bg-white p-6 text-center shadow-soft transition-all hover:shadow-lg">
-    <div className={`mb-4 flex size-14 items-center justify-center rounded-2xl ${buttonColor.replace("bg-", "bg-opacity-10 ")}`}>
-      <Icon className={`size-7 ${buttonColor.replace("bg-", "text-")}`} />
+  <div className="flex flex-col items-center rounded-2xl bg-white p-5 text-center shadow-soft transition-all hover:shadow-lg dark:bg-slate-800 dark:shadow-none dark:border dark:border-slate-700">
+    <div className={`mb-3 flex size-12 items-center justify-center rounded-xl ${buttonColor.replace("bg-", "bg-opacity-10 ")}`}>
+      <Icon className={`size-6 ${buttonColor.replace("bg-", "text-")}`} />
     </div>
-    <h3 className="mb-1 text-lg font-bold text-slate-900">{title}</h3>
-    <p className="mb-6 text-[13px] leading-relaxed text-slate-500">{description}</p>
+    <h3 className="mb-1 text-base font-bold text-slate-900 dark:text-white">{title}</h3>
+    <p className="mb-4 text-xs leading-relaxed text-slate-500 dark:text-slate-400">{description}</p>
     <button
       onClick={onClick}
-      className={`flex items-center gap-2 rounded-xl px-5 py-2 text-xs font-semibold text-white transition-all hover:opacity-90 ${buttonColor}`}
+      className={`flex items-center gap-2 rounded-lg px-4 py-1.5 text-[11px] font-bold text-white transition-all hover:opacity-90 ${buttonColor}`}
     >
       {buttonText}
-      <ArrowRightIcon className="size-3.5" />
+      <ArrowRightIcon className="size-3" />
     </button>
   </div>
 );
@@ -76,6 +77,11 @@ const MoonIcon = ({ className }) => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
   </svg>
 );
+const SunIcon = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+  </svg>
+);
 const ArrowRightIcon = ({ className }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
@@ -94,6 +100,7 @@ const CrownIcon = ({ className }) => (
 
 export default function Dashboard() {
   const { user, logout, isAuthenticated } = useAuth();
+  const { isDarkMode, toggleDarkMode } = useTheme();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [authMode, setAuthMode] = useState(null);
 
@@ -111,16 +118,16 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50 font-sans text-slate-900">
+    <div className="flex min-h-screen bg-slate-50 font-sans text-slate-900 transition-colors dark:bg-slate-900 dark:text-white">
       <AuthModal mode={authMode} onClose={() => setAuthMode(null)} />
       
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-full w-72 border-r border-slate-200 bg-white p-5 shadow-sm">
+      <aside className="fixed left-0 top-0 h-full w-72 border-r border-slate-200 bg-white p-5 shadow-sm dark:bg-slate-800 dark:border-slate-700">
         <div className="mb-8 flex items-center gap-3 px-1">
           <div className="flex size-9 items-center justify-center rounded-xl bg-indigo-600 text-white font-bold text-lg shadow-indigo-200 shadow-lg">
             PF
           </div>
-          <span className="text-lg font-extrabold tracking-tight text-slate-900">PDF Tools</span>
+          <span className="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white">PDF Tools</span>
         </div>
 
         <nav className="space-y-1">
@@ -128,17 +135,17 @@ export default function Dashboard() {
           <SidebarItem icon={MergeIcon} label="Merge PDF" active={activeTab === "merge"} onClick={() => handleToolClick("merge")} />
           <SidebarItem icon={ConvertIcon} label="Convert" active={activeTab === "convert"} onClick={() => handleToolClick("convert")} />
           <SidebarItem icon={TrashIcon} label="Remove Page" active={activeTab === "remove"} onClick={() => handleToolClick("remove")} />
-          <div className="my-6 border-t border-slate-100" />
+          <div className="my-6 border-t border-slate-100 dark:border-slate-700" />
           <SidebarItem icon={HistoryIcon} label="Recent Files" active={activeTab === "recent"} onClick={() => setActiveTab("recent")} />
           <SidebarItem icon={SettingsIcon} label="Settings" active={activeTab === "settings"} onClick={() => setActiveTab("settings")} />
         </nav>
 
         <div className="absolute bottom-6 left-6 right-6">
-          <div className="relative mb-6 rounded-2xl bg-indigo-50 p-5 overflow-hidden">
-            <div className="absolute -right-4 -top-4 size-16 rounded-full bg-indigo-100/50" />
+          <div className="relative mb-6 rounded-2xl bg-indigo-50 p-5 overflow-hidden dark:bg-indigo-900/20">
+            <div className="absolute -right-4 -top-4 size-16 rounded-full bg-indigo-100/50 dark:bg-indigo-800/30" />
             <CrownIcon className="mb-3 size-6 text-amber-500" />
-            <h4 className="mb-1 text-sm font-bold text-slate-900">Upgrade to Pro</h4>
-            <p className="mb-4 text-[11px] leading-relaxed text-slate-500">Unlock unlimited access and premium features.</p>
+            <h4 className="mb-1 text-sm font-bold text-slate-900 dark:text-white">Upgrade to Pro</h4>
+            <p className="mb-4 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">Unlock unlimited access and premium features.</p>
             <button className="w-full rounded-xl bg-indigo-600 py-2.5 text-xs font-bold text-white shadow-md shadow-indigo-100 transition-all hover:bg-indigo-700">
               Upgrade Now
             </button>
@@ -149,7 +156,7 @@ export default function Dashboard() {
               <span>Storage Used</span>
               <span>2.4 GB / 10 GB</span>
             </div>
-            <div className="h-1.5 w-full rounded-full bg-slate-100">
+            <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-700">
               <div className="h-full w-[24%] rounded-full bg-indigo-500" />
             </div>
           </div>
@@ -159,26 +166,29 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className="ml-72 flex-1 p-10">
         {/* Header */}
-        <header className="mb-8 flex items-center justify-between">
+        <header className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
               {activeTab === "merge" ? "Merge PDF" : 
                activeTab === "convert" ? "Convert PDF" : 
                activeTab === "remove" ? "Remove Page" : 
                activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
             </h1>
-            <p className="text-sm text-slate-500">Welcome back! Your all-in-one PDF solution.</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Welcome back! Your all-in-one PDF solution.</p>
           </div>
           <div className="flex items-center gap-4">
-            <button className="flex size-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-all hover:bg-slate-50">
-              <MoonIcon className="size-5" />
+            <button 
+              onClick={toggleDarkMode}
+              className="flex size-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-all hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
+            >
+              {isDarkMode ? <SunIcon className="size-5" /> : <MoonIcon className="size-5" />}
             </button>
             {isAuthenticated ? (
               <div className="group relative">
                 <button className="flex size-10 items-center justify-center rounded-full bg-indigo-600 text-sm font-bold text-white shadow-md">
                   {user?.name?.charAt(0).toUpperCase() || "U"}
                 </button>
-                <div className="absolute right-0 top-full mt-2 hidden w-48 rounded-xl border border-slate-100 bg-white p-2 shadow-xl group-hover:block">
+                <div className="absolute right-0 top-full mt-2 hidden w-48 rounded-xl border border-slate-100 bg-white p-2 shadow-xl group-hover:block dark:bg-slate-800 dark:border-slate-700">
                    <button onClick={logout} className="w-full rounded-lg px-4 py-2 text-left text-sm font-medium text-rose-600 hover:bg-rose-50">Logout</button>
                 </div>
               </div>
@@ -196,7 +206,7 @@ export default function Dashboard() {
         {activeTab === "dashboard" ? (
           <>
             {/* Hero Section */}
-            <section className="relative mb-8 overflow-hidden rounded-[32px] bg-gradient-to-br from-indigo-500 via-indigo-600 to-blue-500 p-10 text-white shadow-xl shadow-indigo-100">
+            <section className="relative mb-8 overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-blue-500 p-8 text-white shadow-xl shadow-indigo-100">
               <div className="relative z-10 max-w-lg">
                 <span className="mb-3 inline-block text-xs font-medium opacity-80 uppercase tracking-wider">Easy. Fast. Secure.</span>
                 <h2 className="mb-3 text-3xl font-extrabold leading-tight">All-in-One PDF Tools</h2>
@@ -215,7 +225,7 @@ export default function Dashboard() {
             </section>
 
             {/* Tool Cards */}
-            <div className="mb-12 grid grid-cols-3 gap-8">
+            <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
               <ToolCard 
                 icon={MergeIcon} 
                 title="Merge PDF" 
@@ -243,25 +253,25 @@ export default function Dashboard() {
             </div>
 
             {/* Recent Files */}
-            <section className="rounded-[32px] bg-white p-8 shadow-soft">
+            <section className="rounded-2xl bg-white p-6 shadow-soft dark:bg-slate-800 dark:shadow-none dark:border dark:border-slate-700">
               <div className="mb-6 flex items-center justify-between">
-                <h2 className="text-lg font-bold text-slate-900">Recent Files</h2>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Recent Files</h2>
                 <button className="text-sm font-bold text-indigo-600 hover:underline">View All</button>
               </div>
 
               <div className="space-y-1">
                 {recentFiles.map((file, i) => (
-                  <div key={i} className="flex items-center justify-between rounded-2xl px-4 py-4 transition-all hover:bg-slate-50 group">
+                  <div key={i} className="flex items-center justify-between rounded-xl px-3 py-3 transition-all hover:bg-slate-50 dark:hover:bg-slate-700/50 group">
                     <div className="flex items-center gap-4">
-                      <div className={`flex size-11 items-center justify-center rounded-xl ${file.type === 'pdf' ? 'bg-rose-50 text-rose-500' : 'bg-blue-50 text-blue-500'}`}>
+                      <div className={`flex size-11 items-center justify-center rounded-xl ${file.type === 'pdf' ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-500' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-500'}`}>
                         <FileIcon className="size-6" />
                       </div>
                       <div>
-                        <h4 className="text-sm font-bold text-slate-900">{file.name}</h4>
-                        <p className="text-[12px] text-slate-400">{file.size} • {file.time}</p>
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-white">{file.name}</h4>
+                        <p className="text-[12px] text-slate-400 dark:text-slate-500">{file.size} • {file.time}</p>
                       </div>
                     </div>
-                    <button className="rounded-lg p-2 text-slate-300 transition-all hover:bg-white hover:text-slate-600">
+                    <button className="rounded-lg p-2 text-slate-300 transition-all hover:bg-white hover:text-slate-600 dark:hover:bg-slate-600">
                       <MoreIcon className="size-5" />
                     </button>
                   </div>
@@ -270,36 +280,36 @@ export default function Dashboard() {
             </section>
           </>
         ) : activeTab === "recent" ? (
-          <div className="rounded-[32px] bg-white p-8 shadow-soft">
-            <h2 className="mb-6 text-xl font-bold text-slate-900">All Recent Files</h2>
+          <div className="rounded-2xl bg-white p-6 shadow-soft dark:bg-slate-800 dark:shadow-none dark:border dark:border-slate-700">
+            <h2 className="mb-6 text-xl font-bold text-slate-900 dark:text-white">All Recent Files</h2>
             <div className="space-y-2">
               {recentFiles.map((file, i) => (
-                <div key={i} className="flex items-center justify-between rounded-2xl border border-slate-50 px-6 py-4 transition-all hover:bg-slate-50">
+                <div key={i} className="flex items-center justify-between rounded-2xl border border-slate-50 px-6 py-4 transition-all hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700/50">
                   <div className="flex items-center gap-4">
-                    <div className={`flex size-12 items-center justify-center rounded-xl ${file.type === 'pdf' ? 'bg-rose-50 text-rose-500' : 'bg-blue-50 text-blue-500'}`}>
+                    <div className={`flex size-12 items-center justify-center rounded-xl ${file.type === 'pdf' ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-500' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-500'}`}>
                       <FileIcon className="size-6" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-slate-900">{file.name}</h4>
-                      <p className="text-sm text-slate-400">{file.size} • {file.time}</p>
+                      <h4 className="font-bold text-slate-900 dark:text-white">{file.name}</h4>
+                      <p className="text-sm text-slate-400 dark:text-slate-500">{file.size} • {file.time}</p>
                     </div>
                   </div>
-                  <button className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-200">Download</button>
+                  <button className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600">Download</button>
                 </div>
               ))}
             </div>
           </div>
         ) : activeTab === "settings" ? (
-          <div className="rounded-[32px] bg-white p-8 shadow-soft">
-            <h2 className="mb-6 text-xl font-bold text-slate-900">Settings</h2>
+          <div className="rounded-[32px] bg-white p-8 shadow-soft dark:bg-slate-800 dark:shadow-none dark:border dark:border-slate-700">
+            <h2 className="mb-6 text-xl font-bold text-slate-900 dark:text-white">Settings</h2>
             <div className="max-w-md space-y-6">
               <div>
-                <label className="mb-2 block text-sm font-bold text-slate-700">Display Name</label>
-                <input type="text" defaultValue={user?.name} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" />
+                <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">Display Name</label>
+                <input type="text" defaultValue={user?.name} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:bg-slate-900 dark:border-slate-700 dark:text-white" />
               </div>
               <div>
-                <label className="mb-2 block text-sm font-bold text-slate-700">Email Address</label>
-                <input type="email" defaultValue={user?.email} disabled className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-500" />
+                <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">Email Address</label>
+                <input type="email" defaultValue={user?.email} disabled className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-500 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-500" />
               </div>
               <button className="rounded-xl bg-indigo-600 px-8 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-100 transition-all hover:bg-indigo-700">
                 Save Changes
@@ -307,7 +317,7 @@ export default function Dashboard() {
             </div>
           </div>
         ) : (
-          <div className="rounded-[32px] bg-white p-8 shadow-soft">
+          <div className="rounded-[32px] bg-white p-8 shadow-soft dark:bg-slate-800 dark:shadow-none dark:border dark:border-slate-700">
             <MergePanel 
               initialMode={activeTab === "remove" ? "remove-pages" : activeTab} 
               hideTabs={true} 

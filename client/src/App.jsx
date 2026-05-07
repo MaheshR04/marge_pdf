@@ -1,10 +1,5 @@
 import Dashboard from "./components/Dashboard";
-import { AuthProvider } from "./context/AuthContext";
 
 export default function App() {
-  return (
-    <AuthProvider>
-      <Dashboard />
-    </AuthProvider>
-  );
+  return <Dashboard />;
 }

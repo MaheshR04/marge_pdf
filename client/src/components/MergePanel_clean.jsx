@@ -393,11 +393,7 @@ export default function MergePanel({ initialMode, hideTabs }) {
               <button
                 onClick={onDownload}
                 disabled={!downloadUrl}
-                className={`flex-1 rounded-2xl py-4 font-bold transition-all disabled:opacity-50 ${
-                  downloadUrl
-                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100 hover:bg-indigo-700"
-                    : "border border-indigo-200 bg-white text-indigo-600 hover:bg-indigo-50 dark:bg-slate-800 dark:border-indigo-900 dark:text-indigo-400"
-                }`}
+                className="flex-1 rounded-2xl border border-indigo-200 bg-white py-4 font-bold text-indigo-600 transition-all hover:bg-indigo-50 disabled:opacity-50 dark:bg-slate-800 dark:border-indigo-900 dark:text-indigo-400 dark:hover:bg-slate-700"
               >
                 Download
               </button>

@@ -11,13 +11,14 @@ body,
 }
 
 body {
-  @apply bg-mesh-light text-slate-800 antialiased;
+  @apply bg-mesh-light text-slate-800 antialiased dark:bg-slate-900 dark:text-white;
   font-family: "Poppins", "Trebuchet MS", sans-serif;
 }
 
 .glass {
   background: rgba(255, 255, 255, 0.75);
   backdrop-filter: blur(12px);
+  @apply dark:bg-slate-800/75 dark:border-slate-700;
 }
 
 .hero-entry {
