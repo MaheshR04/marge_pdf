@@ -99,15 +99,28 @@ function wrapTextToWidth(text, font, fontSize, maxWidth) {
   return lines.length > 0 ? lines : [""];
 }
 
+function sanitizeTextForPdf(text) {
+  // Replace characters that cannot be encoded in WinAnsi (standard PDF encoding)
+  // This prevents the "WinAnsi cannot encode" error
+  return (text || "").replace(/[^\x00-\x7F\x80-\xFF]/g, (char) => {
+    // Optional: map specific common symbols to ASCII equivalents here
+    return " "; 
+  });
+}
+
 function parsePageRanges(rangeStr, totalPages) {
   const pages = new Set();
   if (!rangeStr) return pages;
 
-  const parts = rangeStr.split(",").map((p) => p.trim());
+  // Split by commas or spaces, and filter out empty strings
+  const parts = rangeStr.split(/[,\s]+/).map((p) => p.trim()).filter(Boolean);
 
   for (const part of parts) {
     if (part.includes("-")) {
-      const [start, end] = part.split("-").map((n) => parseInt(n.trim(), 10));
+      const [startStr, endStr] = part.split("-");
+      const start = parseInt(startStr, 10);
+      const end = parseInt(endStr, 10);
+      
       if (!isNaN(start) && !isNaN(end)) {
         const actualStart = Math.max(1, Math.min(start, end));
         const actualEnd = Math.min(totalPages, Math.max(start, end));
@@ -136,7 +149,8 @@ async function createPdfFromText(text) {
   const lineHeight = 16;
   const maxTextWidth = pageWidth - margin * 2;
 
-  const safeText = text?.trim() || "No readable text found in this Word file.";
+  const rawText = text?.trim() || "No readable text found in this Word file.";
+  const safeText = sanitizeTextForPdf(rawText);
   const paragraphs = safeText
     .split(/\r?\n/)
     .map((line) => line.trim())
@@ -378,11 +392,15 @@ async function convertPdfToDocxPython(pdfBuffer) {
   try {
     await fs.writeFile(pdfPath, pdfBuffer);
     const pythonScript = path.join(__dirname, "../utils/pdfToWord.py");
+    const execOptions = { 
+      maxBuffer: 10 * 1024 * 1024, // 10MB buffer for noisy output
+      timeout: 45000 // 45s timeout to ensure fallback works quickly
+    };
     
     try {
-      await execFile("python3", [pythonScript, pdfPath, docxPath]);
+      await execFile("python3", [pythonScript, pdfPath, docxPath], execOptions);
     } catch (err) {
-      await execFile("python", [pythonScript, pdfPath, docxPath]);
+      await execFile("python", [pythonScript, pdfPath, docxPath], execOptions);
     }
     
     const docxBuffer = await fs.readFile(docxPath);
@@ -406,7 +424,7 @@ function addTextToDocx(bodyParts, text) {
 }
 
 export async function createDocxFromFiles(files, options = {}) {
-  const includeFileHeadings = options.includeFileHeadings ?? files.length > 1;
+  const includeFileHeadings = options.includeFileHeadings ?? false;
   const mediaEntries = [];
   const relationshipEntries = [];
   const contentTypes = [
@@ -480,7 +498,11 @@ export async function createDocxFromFiles(files, options = {}) {
   ]);
 }
 
-router.post("/merge", authMiddleware, upload.array("pdfs", 20), async (req, res) => {
+router.post("/merge", (req, res, next) => {
+  // Set timeout to 5 minutes for long-running conversions
+  req.setTimeout(300000);
+  next();
+}, authMiddleware, upload.array("pdfs", 20), async (req, res) => {
   try {
     const files = req.files || [];
     const outputFormat = req.body?.outputFormat === "docx" ? "docx" : "pdf";
@@ -545,31 +567,21 @@ router.post("/merge", authMiddleware, upload.array("pdfs", 20), async (req, res)
       return res.send(Buffer.from(pdfBytes));
     }
 
-    if (outputFormat === "docx") {
-      let docxBuffer;
-      
-      if (mode === "convert" && files.length === 1 && isPdfFile(files[0])) {
-        try {
-          docxBuffer = await convertPdfToDocxPython(files[0].buffer);
-        } catch (err) {
-          console.error("Python conversion failed, falling back to basic extraction", err);
-          docxBuffer = await createDocxFromFiles(files, {
-            includeFileHeadings: mode !== "convert"
-          });
-        }
-      } else {
-        docxBuffer = await createDocxFromFiles(files, {
-          includeFileHeadings: mode !== "convert"
-        });
+    // Optimization: If single PDF to Word conversion, skip merging and convert directly
+    if (outputFormat === "docx" && files.length === 1 && isPdfFile(files[0])) {
+      try {
+        const docxBuffer = await convertPdfToDocxPython(files[0].buffer);
+        const fileName = `converted-${Date.now()}.docx`;
+        res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+        res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+        return res.send(docxBuffer);
+      } catch (err) {
+        console.error("Direct high-quality conversion failed, using fallback:", err.message);
+        const docxBuffer = await createDocxFromFiles(files, { includeFileHeadings: false });
+        res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+        res.setHeader("Content-Disposition", `attachment; filename="converted-${Date.now()}.docx"`);
+        return res.send(docxBuffer);
       }
-
-      const fileName = `${mode === "convert" ? "converted" : "merged"}-${Date.now()}.docx`;
-      res.setHeader(
-        "Content-Type",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-      );
-      res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
-      return res.send(docxBuffer);
     }
 
     const mergedPdf = await PDFDocument.create();
@@ -582,7 +594,37 @@ router.post("/merge", authMiddleware, upload.array("pdfs", 20), async (req, res)
     }
 
     const pdfBytes = await mergedPdf.save();
-    const fileName = `${mode === "convert" ? "converted" : "merged"}-${Date.now()}.pdf`;
+
+    if (outputFormat === "docx") {
+      try {
+        // Try the high-quality Python conversion first
+        // Use the buffer directly to save memory
+        const docxBuffer = await convertPdfToDocxPython(pdfBytes);
+        const fileName = `${mode === "convert" ? "converted" : mode === "remove-pages" ? "edited" : "merged"}-${Date.now()}.docx`;
+        res.setHeader(
+          "Content-Type",
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        );
+        res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+        return res.send(docxBuffer);
+      } catch (err) {
+        console.error("High-quality DOCX conversion failed, using fallback:", err.message);
+        
+        // Fallback to the basic extraction method if Python fails
+        const docxBuffer = await createDocxFromFiles(files, {
+          includeFileHeadings: false
+        });
+        const fileName = `${mode === "convert" ? "converted" : "merged"}-${Date.now()}.docx`;
+        res.setHeader(
+          "Content-Type",
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        );
+        res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+        return res.send(docxBuffer);
+      }
+    }
+
+    const fileName = `${mode === "convert" ? "converted" : mode === "remove-pages" ? "edited" : "merged"}-${Date.now()}.pdf`;
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);

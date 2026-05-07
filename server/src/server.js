@@ -42,9 +42,11 @@ app.use((err, _req, res, _next) => {
 
 connectDB()
   .then(() => {
-    app.listen(port, () => {
+    const server = app.listen(port, () => {
       console.log(`Server started on port ${port}`);
     });
+    // Set global timeout to 5 minutes
+    server.timeout = 300000;
   })
   .catch((error) => {
     console.error("Mongo connection failed:", error.message);
