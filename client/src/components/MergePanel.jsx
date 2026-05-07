@@ -218,10 +218,10 @@ export default function MergePanel({ initialMode, hideTabs }) {
               </a>
             </div>
           )}
-          <h2 className="text-2xl font-bold text-slate-900">
+          <h2 className="text-xl font-bold text-slate-900">
             {mode === "convert" ? "Convert Your File" : mode === "remove-pages" ? "Remove PDF Pages" : "Merge Your Files"}
           </h2>
-          <p className="mt-2 text-slate-600">
+          <p className="mt-1 text-sm text-slate-500">
             {mode === "convert"
               ? "Add one PDF, Word .docx, or photo, then download as PDF or Word."
               : mode === "remove-pages"
@@ -236,166 +236,181 @@ export default function MergePanel({ initialMode, hideTabs }) {
           </p>
         )}
 
-        <div className="space-y-4">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">
-              Select Files
-            </label>
-            <div
-              onDrop={onDrop}
-              onDragOver={onDragOver}
-              onDragLeave={onDragLeave}
-              className={`rounded-xl border-2 border-dashed bg-white p-5 transition ${
-                isDragging
-                  ? "border-brand-500 bg-brand-50"
-                  : "border-slate-300"
-              }`}
-            >
-              <input
-                type="file"
-                accept=".pdf,.docx,.png,.jpg,.jpeg,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/png,image/jpeg"
-                multiple={mode !== "remove-pages"}
-                onChange={onFileChange}
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
-              />
-              <p className="mt-3 text-sm font-medium text-slate-700">
-                {mode === "remove-pages" 
-                  ? "Choose the PDF file you want to edit." 
-                  : "Drag and drop files here, or choose files from your computer."}
-              </p>
-            </div>
-            <p className="mt-2 text-xs text-slate-500">
-              You can add files multiple times. Supported: PDF, DOCX, PNG, JPG, JPEG.
-            </p>
-          </div>
-
-          <div className="max-w-xs">
-            <label className="mb-2 block text-sm font-medium text-slate-700">
-              Choose Download Format
-            </label>
-            <div className="flex gap-4">
-              <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+          <div className="space-y-6">
+            <div>
+              <label className="mb-3 block text-sm font-bold text-slate-700">
+                Upload Files
+              </label>
+              <div
+                onDrop={onDrop}
+                onDragOver={onDragOver}
+                onDragLeave={onDragLeave}
+                onClick={() => document.getElementById('fileInput').click()}
+                className={`relative cursor-pointer overflow-hidden rounded-[24px] border-2 border-dashed p-10 text-center transition-all ${
+                  isDragging
+                    ? "border-indigo-500 bg-indigo-50/50"
+                    : "border-slate-200 bg-slate-50/50 hover:border-indigo-300 hover:bg-slate-50"
+                }`}
+              >
                 <input
-                  type="radio"
-                  name="outputFormat"
-                  value="pdf"
-                  checked={outputFormat === "pdf"}
-                  onChange={() => {
-                    setOutputFormat("pdf");
-                    setSuccess("");
-                    if (downloadUrl) {
-                      URL.revokeObjectURL(downloadUrl);
-                      setDownloadUrl("");
-                    }
-                  }}
-                  className="size-4 accent-brand-600"
+                  id="fileInput"
+                  type="file"
+                  accept=".pdf,.docx,.png,.jpg,.jpeg,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/png,image/jpeg"
+                  multiple={mode !== "remove-pages"}
+                  onChange={onFileChange}
+                  className="hidden"
                 />
-                PDF
-              </label>
-              <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
-                <input
-                  type="radio"
-                  name="outputFormat"
-                  value="docx"
-                  checked={outputFormat === "docx"}
-                  onChange={() => {
-                    setOutputFormat("docx");
-                    setSuccess("");
-                    if (downloadUrl) {
-                      URL.revokeObjectURL(downloadUrl);
-                      setDownloadUrl("");
-                    }
-                  }}
-                  className="size-4 accent-brand-600"
-                />
-                Word (.docx)
-              </label>
-            </div>
-            <p className="mt-2 text-xs text-slate-500">
-              Word download keeps Word text and photos. PDF files are best kept as PDF.
-            </p>
-          </div>
-
-          {mode === "remove-pages" && (
-            <div className="max-w-xs">
-              <label className="mb-2 block text-sm font-medium text-slate-700">
-                Pages to Remove
-              </label>
-              <input
-                type="text"
-                value={pagesToRemove}
-                onChange={(e) => setPagesToRemove(e.target.value)}
-                placeholder="e.g. 1, 3-5, 10"
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
-              />
-              <p className="mt-2 text-xs text-slate-500">
-                Enter comma-separated page numbers or ranges to delete.
-              </p>
-            </div>
-          )}
-
-          {selectedFiles.length > 0 && (
-            <div className="rounded-xl bg-slate-50 p-4">
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <p className="text-sm font-semibold text-slate-700">
-                  Selected files ({selectedFiles.length}):
+                <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-white text-indigo-600 shadow-sm border border-slate-100">
+                   <svg className="size-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                   </svg>
+                </div>
+                <p className="text-sm font-bold text-slate-900">
+                  {mode === "remove-pages" 
+                    ? "Click to select a PDF file" 
+                    : "Click or drag & drop files here"}
                 </p>
+                <p className="mt-1 text-xs text-slate-400">
+                  Supports PDF, DOCX, PNG, JPG, JPEG
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-white p-5 border border-slate-100 shadow-sm">
+              <label className="mb-4 block text-sm font-bold text-slate-700">
+                Choose Output Format
+              </label>
+              <div className="flex gap-3">
                 <button
-                  onClick={clearFiles}
                   type="button"
-                  className="text-xs font-semibold text-brand-700 hover:text-brand-800"
+                  onClick={() => setOutputFormat("pdf")}
+                  className={`flex-1 rounded-xl py-3 text-sm font-bold transition-all border ${
+                    outputFormat === "pdf"
+                      ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100"
+                      : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                  }`}
                 >
-                  Clear all
+                  PDF
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOutputFormat("docx")}
+                  className={`flex-1 rounded-xl py-3 text-sm font-bold transition-all border ${
+                    outputFormat === "docx"
+                      ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100"
+                      : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                  }`}
+                >
+                  Word (.docx)
                 </button>
               </div>
-              <ul className="space-y-2 text-sm text-slate-600">
-                {selectedFiles.map((file, index) => (
-                  <li
-                    key={`${file.name}-${file.size}-${index}`}
-                    className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2"
-                  >
-                    <span className="truncate">{file.name}</span>
-                    <button
-                      onClick={() => removeFile(index)}
-                      type="button"
-                      className="text-xs font-semibold text-red-600 hover:text-red-700"
-                    >
-                      Remove
-                    </button>
-                  </li>
-                ))}
-              </ul>
             </div>
-          )}
 
-          <div className="flex flex-wrap gap-3">
-            <button
-              onClick={onProcess}
-              disabled={!canProcess}
-              className="rounded-xl bg-brand-600 px-5 py-2.5 font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isMerging ? actionProgressLabel : `${actionLabel} Files`}
-            </button>
-
-            <button
-              onClick={onDownload}
-              disabled={!downloadUrl}
-              className="rounded-xl border border-brand-200 px-5 py-2.5 font-semibold text-brand-700 transition hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Download {mode === "convert" ? "Converted" : "Merged"} {outputFormat === "docx" ? "Word" : "PDF"}
-            </button>
+            {mode === "remove-pages" && (
+              <div className="rounded-2xl bg-white p-5 border border-slate-100 shadow-sm">
+                <label className="mb-2 block text-sm font-bold text-slate-700">
+                  Pages to Remove
+                </label>
+                <input
+                  type="text"
+                  value={pagesToRemove}
+                  onChange={(e) => setPagesToRemove(e.target.value)}
+                  placeholder="e.g. 1, 3-5, 10"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm transition-all focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10"
+                />
+                <p className="mt-2 text-[11px] text-slate-400">
+                  Enter comma-separated page numbers or ranges.
+                </p>
+              </div>
+            )}
           </div>
 
+          <div className="flex flex-col">
+            <div className="mb-4 flex items-center justify-between">
+               <label className="text-sm font-bold text-slate-700">
+                  Selected Files ({selectedFiles.length})
+               </label>
+               {selectedFiles.length > 0 && (
+                 <button
+                   onClick={clearFiles}
+                   className="text-xs font-bold text-rose-500 hover:underline"
+                 >
+                   Clear All
+                 </button>
+               )}
+            </div>
+
+            <div className="flex-1 space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+              {selectedFiles.length === 0 ? (
+                <div className="flex h-full flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-100 bg-slate-50/30 p-10 text-center">
+                  <div className="mb-4 rounded-2xl bg-white p-4 text-slate-300 shadow-sm">
+                    <svg className="size-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <p className="text-sm text-slate-400">No files selected yet</p>
+                </div>
+              ) : (
+                selectedFiles.map((file, index) => (
+                  <div
+                    key={`${file.name}-${file.size}-${index}`}
+                    className="flex items-center justify-between rounded-2xl border border-slate-50 bg-white p-3 shadow-sm transition-all hover:border-indigo-100 hover:bg-slate-50 group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`flex size-10 items-center justify-center rounded-xl ${file.name.endsWith('.pdf') ? 'bg-rose-50 text-rose-500' : 'bg-blue-50 text-blue-500'}`}>
+                        <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                           <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <div className="max-w-[140px] sm:max-w-[200px]">
+                        <p className="truncate text-sm font-bold text-slate-900">{file.name}</p>
+                        <p className="text-[11px] text-slate-400">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => removeFile(index)}
+                      className="rounded-lg p-2 text-slate-300 hover:bg-white hover:text-rose-500 transition-all"
+                    >
+                      <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="mt-8 flex gap-3">
+              <button
+                onClick={onProcess}
+                disabled={!canProcess}
+                className="flex-[2] rounded-2xl bg-indigo-600 py-4 font-bold text-white shadow-lg shadow-indigo-100 transition-all hover:bg-indigo-700 disabled:opacity-50 disabled:shadow-none"
+              >
+                {isMerging ? actionProgressLabel : `${actionLabel} Files`}
+              </button>
+
+              <button
+                onClick={onDownload}
+                disabled={!downloadUrl}
+                className="flex-1 rounded-2xl border border-indigo-200 bg-white py-4 font-bold text-indigo-600 transition-all hover:bg-indigo-50 disabled:opacity-50"
+              >
+                Download
+              </button>
+            </div>
+          </div>
+        </div>
+
           {error && (
-            <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
+            <div className="mt-4 rounded-2xl bg-rose-50 p-4 text-sm font-medium text-rose-600 border border-rose-100">
               {error}
-            </p>
+            </div>
           )}
 
           {success && (
-            <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            <div className="mt-4 rounded-2xl bg-emerald-50 p-4 text-sm font-medium text-emerald-700 border border-emerald-100">
               {success}
-            </p>
+            </div>
           )}
         </div>
       </div>
