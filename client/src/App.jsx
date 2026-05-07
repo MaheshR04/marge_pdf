@@ -1,7 +1,6 @@
 import Navbar from "./components/Navbar";
 import MergePanel from "./components/MergePanel";
 import FeatureCards from "./components/FeatureCards";
-import Footer from "./components/Footer";
 
 export default function App() {
   return (
@@ -27,8 +26,6 @@ export default function App() {
         <MergePanel />
         <FeatureCards />
       </main>
-
-      <Footer />
     </div>
   );
 }

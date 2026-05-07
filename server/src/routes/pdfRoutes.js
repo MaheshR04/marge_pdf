@@ -99,6 +99,32 @@ function wrapTextToWidth(text, font, fontSize, maxWidth) {
   return lines.length > 0 ? lines : [""];
 }
 
+function parsePageRanges(rangeStr, totalPages) {
+  const pages = new Set();
+  if (!rangeStr) return pages;
+
+  const parts = rangeStr.split(",").map((p) => p.trim());
+
+  for (const part of parts) {
+    if (part.includes("-")) {
+      const [start, end] = part.split("-").map((n) => parseInt(n.trim(), 10));
+      if (!isNaN(start) && !isNaN(end)) {
+        const actualStart = Math.max(1, Math.min(start, end));
+        const actualEnd = Math.min(totalPages, Math.max(start, end));
+        for (let i = actualStart; i <= actualEnd; i++) {
+          pages.add(i - 1);
+        }
+      }
+    } else {
+      const page = parseInt(part, 10);
+      if (!isNaN(page) && page >= 1 && page <= totalPages) {
+        pages.add(page - 1);
+      }
+    }
+  }
+  return pages;
+}
+
 async function createPdfFromText(text) {
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
@@ -458,16 +484,65 @@ router.post("/merge", authMiddleware, upload.array("pdfs", 20), async (req, res)
   try {
     const files = req.files || [];
     const outputFormat = req.body?.outputFormat === "docx" ? "docx" : "pdf";
-    const mode = req.body?.mode === "convert" ? "convert" : "merge";
-    const minimumFiles = mode === "convert" ? 1 : 2;
+    const mode = req.body?.mode || "merge";
+    
+    let minimumFiles = 2;
+    if (mode === "convert" || mode === "remove-pages") {
+      minimumFiles = 1;
+    }
 
     if (files.length < minimumFiles) {
-      return res.status(400).json({
-        message:
-          mode === "convert"
-            ? "Please upload at least 1 file."
-            : "Please upload at least 2 files."
-      });
+      let errorMessage = "Please upload at least 2 files.";
+      if (mode === "convert" || mode === "remove-pages") {
+        errorMessage = "Please upload at least 1 file.";
+      }
+      return res.status(400).json({ message: errorMessage });
+    }
+
+    if (mode === "remove-pages") {
+      if (!isPdfFile(files[0])) {
+        return res.status(400).json({ message: "Remove pages only works with PDF files." });
+      }
+
+      const pagesToRemoveStr = req.body?.pagesToRemove || "";
+      const sourcePdf = await PDFDocument.load(files[0].buffer);
+      const totalPages = sourcePdf.getPageCount();
+      const indicesToRemove = parsePageRanges(pagesToRemoveStr, totalPages);
+
+      if (indicesToRemove.size === 0) {
+        return res.status(400).json({ message: "Please specify valid page numbers to remove (e.g. 1, 3-5)." });
+      }
+
+      if (indicesToRemove.size >= totalPages) {
+        return res.status(400).json({ message: "You cannot remove all pages from a PDF." });
+      }
+
+      const resultPdf = await PDFDocument.create();
+      const allIndices = Array.from({ length: totalPages }, (_, i) => i);
+      const indicesToKeep = allIndices.filter((i) => !indicesToRemove.has(i));
+
+      const copiedPages = await resultPdf.copyPages(sourcePdf, indicesToKeep);
+      copiedPages.forEach((page) => resultPdf.addPage(page));
+
+      const pdfBytes = await resultPdf.save();
+
+      if (outputFormat === "docx") {
+        try {
+          const docxBuffer = await convertPdfToDocxPython(Buffer.from(pdfBytes));
+          const fileName = `edited-${Date.now()}.docx`;
+          res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+          res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+          return res.send(docxBuffer);
+        } catch (err) {
+          console.error("Conversion failed in remove-pages mode:", err);
+          // Fallback to PDF if conversion fails
+        }
+      }
+
+      const fileName = `edited-${Date.now()}.pdf`;
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+      return res.send(Buffer.from(pdfBytes));
     }
 
     if (outputFormat === "docx") {

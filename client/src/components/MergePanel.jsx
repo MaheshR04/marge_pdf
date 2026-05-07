@@ -11,10 +11,14 @@ function isAllowedFile(file) {
 
 export default function MergePanel() {
   const { token, isAuthenticated } = useAuth();
-  const [mode, setMode] = useState(() =>
-    window.location.hash === "#convert-pdf" ? "convert" : "merge"
-  );
+  const [mode, setMode] = useState(() => {
+    const hash = window.location.hash;
+    if (hash === "#convert-pdf") return "convert";
+    if (hash === "#remove-pages") return "remove-pages";
+    return "merge";
+  });
   const [selectedFiles, setSelectedFiles] = useState([]);
+  const [pagesToRemove, setPagesToRemove] = useState("");
   const [isMerging, setIsMerging] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -25,7 +29,10 @@ export default function MergePanel() {
 
   useEffect(() => {
     const syncModeFromHash = () => {
-      setMode(window.location.hash === "#convert-pdf" ? "convert" : "merge");
+      const hash = window.location.hash;
+      if (hash === "#convert-pdf") setMode("convert");
+      else if (hash === "#remove-pages") setMode("remove-pages");
+      else setMode("merge");
     };
 
     window.addEventListener("hashchange", syncModeFromHash);
@@ -38,14 +45,16 @@ export default function MergePanel() {
     };
   }, [downloadUrl]);
 
-  const minimumFiles = mode === "convert" ? 1 : 2;
-  const actionLabel = mode === "convert" ? "Convert" : "Merge";
-  const actionProgressLabel = mode === "convert" ? "Converting..." : "Merging...";
+  const minimumFiles = (mode === "convert" || mode === "remove-pages") ? 1 : 2;
+  const actionLabel = mode === "convert" ? "Convert" : mode === "remove-pages" ? "Process" : "Merge";
+  const actionProgressLabel = mode === "convert" ? "Converting..." : mode === "remove-pages" ? "Processing..." : "Merging...";
 
-  const canProcess = useMemo(
-    () => isAuthenticated && selectedFiles.length >= minimumFiles && !isMerging,
-    [isAuthenticated, selectedFiles.length, minimumFiles, isMerging]
-  );
+  const canProcess = useMemo(() => {
+    if (!isAuthenticated || isMerging) return false;
+    if (selectedFiles.length < minimumFiles) return false;
+    if (mode === "remove-pages" && !pagesToRemove.trim()) return false;
+    return true;
+  }, [isAuthenticated, selectedFiles.length, minimumFiles, isMerging, mode, pagesToRemove]);
 
   const addFiles = (files) => {
     const incomingFiles = Array.from(files || []);
@@ -64,6 +73,9 @@ export default function MergePanel() {
 
     if (validFiles.length > 0) {
       setSelectedFiles((prev) => {
+        if (mode === "remove-pages") {
+          return [validFiles[0]];
+        }
         const map = new Map(prev.map((f) => [`${f.name}-${f.size}`, f]));
         validFiles.forEach((file) => {
           map.set(`${file.name}-${file.size}`, file);
@@ -131,7 +143,8 @@ export default function MergePanel() {
         selectedFiles,
         token,
         outputFormat,
-        mode
+        mode,
+        { pagesToRemove }
       );
       const blobUrl = URL.createObjectURL(blob);
       if (downloadUrl) {
@@ -139,7 +152,7 @@ export default function MergePanel() {
       }
       setDownloadUrl(blobUrl);
       setDownloadName(fileName);
-      setSuccess(`Files ${mode === "convert" ? "converted" : "merged"} successfully. Download is ready.`);
+      setSuccess(`Files ${mode === "convert" ? "converted" : mode === "remove-pages" ? "processed" : "merged"} successfully. Download is ready.`);
     } catch (err) {
       setError(err.message || "Failed to merge files.");
     } finally {
@@ -186,13 +199,26 @@ export default function MergePanel() {
             >
               Convert PDF
             </a>
+            <a
+              href="#remove-pages"
+              onClick={() => setMode("remove-pages")}
+              className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+                mode === "remove-pages"
+                  ? "bg-brand-600 text-white"
+                  : "border border-brand-200 text-brand-700 hover:bg-brand-50"
+              }`}
+            >
+              Remove Pages
+            </a>
           </div>
           <h2 className="text-2xl font-bold text-slate-900">
-            {mode === "convert" ? "Convert Your File" : "Merge Your Files"}
+            {mode === "convert" ? "Convert Your File" : mode === "remove-pages" ? "Remove PDF Pages" : "Merge Your Files"}
           </h2>
           <p className="mt-2 text-slate-600">
             {mode === "convert"
               ? "Add one PDF, Word .docx, or photo, then download as PDF or Word."
+              : mode === "remove-pages"
+              ? "Add one PDF, enter page numbers to remove, then download the result."
               : "Add at least two files (PDF, Word .docx, or photos), merge them, then download as PDF or Word."}
           </p>
         </div>
@@ -221,12 +247,14 @@ export default function MergePanel() {
               <input
                 type="file"
                 accept=".pdf,.docx,.png,.jpg,.jpeg,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/png,image/jpeg"
-                multiple
+                multiple={mode !== "remove-pages"}
                 onChange={onFileChange}
                 className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
               />
               <p className="mt-3 text-sm font-medium text-slate-700">
-                Drag and drop files here, or choose files from your computer.
+                {mode === "remove-pages" 
+                  ? "Choose the PDF file you want to edit." 
+                  : "Drag and drop files here, or choose files from your computer."}
               </p>
             </div>
             <p className="mt-2 text-xs text-slate-500">
@@ -236,27 +264,68 @@ export default function MergePanel() {
 
           <div className="max-w-xs">
             <label className="mb-2 block text-sm font-medium text-slate-700">
-              Download Format
+              Choose Download Format
             </label>
-            <select
-              value={outputFormat}
-              onChange={(event) => {
-                setOutputFormat(event.target.value);
-                setSuccess("");
-                if (downloadUrl) {
-                  URL.revokeObjectURL(downloadUrl);
-                  setDownloadUrl("");
-                }
-              }}
-              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
-            >
-              <option value="pdf">PDF</option>
-              <option value="docx">Word (.docx)</option>
-            </select>
+            <div className="flex gap-4">
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="radio"
+                  name="outputFormat"
+                  value="pdf"
+                  checked={outputFormat === "pdf"}
+                  onChange={() => {
+                    setOutputFormat("pdf");
+                    setSuccess("");
+                    if (downloadUrl) {
+                      URL.revokeObjectURL(downloadUrl);
+                      setDownloadUrl("");
+                    }
+                  }}
+                  className="size-4 accent-brand-600"
+                />
+                PDF
+              </label>
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="radio"
+                  name="outputFormat"
+                  value="docx"
+                  checked={outputFormat === "docx"}
+                  onChange={() => {
+                    setOutputFormat("docx");
+                    setSuccess("");
+                    if (downloadUrl) {
+                      URL.revokeObjectURL(downloadUrl);
+                      setDownloadUrl("");
+                    }
+                  }}
+                  className="size-4 accent-brand-600"
+                />
+                Word (.docx)
+              </label>
+            </div>
             <p className="mt-2 text-xs text-slate-500">
               Word download keeps Word text and photos. PDF files are best kept as PDF.
             </p>
           </div>
+
+          {mode === "remove-pages" && (
+            <div className="max-w-xs">
+              <label className="mb-2 block text-sm font-medium text-slate-700">
+                Pages to Remove
+              </label>
+              <input
+                type="text"
+                value={pagesToRemove}
+                onChange={(e) => setPagesToRemove(e.target.value)}
+                placeholder="e.g. 1, 3-5, 10"
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
+              />
+              <p className="mt-2 text-xs text-slate-500">
+                Enter comma-separated page numbers or ranges to delete.
+              </p>
+            </div>
+          )}
 
           {selectedFiles.length > 0 && (
             <div className="rounded-xl bg-slate-50 p-4">

@@ -54,11 +54,17 @@ function getDownloadFileName(response, outputFormat, mode) {
     : `${headerName.replace(/\.[^.]+$/, "")}${expectedExtension}`;
 }
 
-export async function mergePdfs(files, token, outputFormat = "pdf", mode = "merge") {
+export async function mergePdfs(files, token, outputFormat = "pdf", mode = "merge", extraParams = {}) {
   const formData = new FormData();
   files.forEach((file) => formData.append("pdfs", file));
   formData.append("outputFormat", outputFormat);
   formData.append("mode", mode);
+
+  Object.entries(extraParams).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      formData.append(key, value);
+    }
+  });
 
   const response = await request("/pdf/merge", {
     method: "POST",
