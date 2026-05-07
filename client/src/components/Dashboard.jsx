@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import MergePanel from "./MergePanel";
@@ -113,9 +113,27 @@ const CrownIcon = ({ className }) => (
 export default function Dashboard() {
   const { user, logout, isAuthenticated } = useAuth();
   const { isDarkMode, toggleDarkMode } = useTheme();
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState(() => {
+    const hash = window.location.hash;
+    if (hash === "#merge") return "merge";
+    if (hash === "#convert-pdf") return "convert";
+    if (hash === "#remove-pages") return "remove";
+    return "dashboard";
+  });
   const [authMode, setAuthMode] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (hash === "#merge") setActiveTab("merge");
+      else if (hash === "#convert-pdf") setActiveTab("convert");
+      else if (hash === "#remove-pages") setActiveTab("remove");
+      else if (!hash || hash === "#dashboard") setActiveTab("dashboard");
+    };
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
 
   const recentFiles = [
     { name: "Project_Proposal.pdf", size: "2.4 MB", time: "2 minutes ago", type: "pdf" },
@@ -188,14 +206,27 @@ export default function Dashboard() {
 
         {/* Header */}
         <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-              {activeTab === "merge" ? "Merge PDF" : 
-               activeTab === "convert" ? "Convert PDF" : 
-               activeTab === "remove" ? "Remove Page" : 
-               activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
-            </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Welcome back! Your all-in-one PDF solution.</p>
+          <div className="flex items-center gap-3">
+            {activeTab !== "dashboard" && (
+              <button 
+                onClick={() => { setActiveTab("dashboard"); window.location.hash = "#dashboard"; }}
+                className="flex size-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700"
+              >
+                <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+            )}
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+                {activeTab === "merge" ? "Merge PDF" : 
+                 activeTab === "convert" ? "Convert PDF" : 
+                 activeTab === "remove" ? "Remove Page" : 
+                 activeTab === "recent" ? "Recent Files" :
+                 activeTab === "settings" ? "Settings" : "Dashboard"}
+              </h1>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Welcome back! Your all-in-one PDF solution.</p>
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <button 
