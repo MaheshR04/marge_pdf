@@ -9,9 +9,10 @@ function isAllowedFile(file) {
   return ACCEPTED_EXTENSIONS.some((ext) => name.endsWith(ext));
 }
 
-export default function MergePanel() {
+export default function MergePanel({ initialMode, hideTabs }) {
   const { token, isAuthenticated } = useAuth();
   const [mode, setMode] = useState(() => {
+    if (initialMode) return initialMode;
     const hash = window.location.hash;
     if (hash === "#convert-pdf") return "convert";
     if (hash === "#remove-pages") return "remove-pages";
@@ -28,6 +29,10 @@ export default function MergePanel() {
   const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
+    if (initialMode) {
+      setMode(initialMode);
+      return;
+    }
     const syncModeFromHash = () => {
       const hash = window.location.hash;
       if (hash === "#convert-pdf") setMode("convert");
@@ -43,7 +48,7 @@ export default function MergePanel() {
         URL.revokeObjectURL(downloadUrl);
       }
     };
-  }, [downloadUrl]);
+  }, [downloadUrl, initialMode]);
 
   const minimumFiles = (mode === "convert" || mode === "remove-pages") ? 1 : 2;
   const actionLabel = mode === "convert" ? "Convert" : mode === "remove-pages" ? "Process" : "Merge";
@@ -173,44 +178,46 @@ export default function MergePanel() {
   };
 
   return (
-    <section id="merge" className="mx-auto w-full max-w-6xl px-4 pb-12 sm:px-6">
-      <div id="convert-pdf" className="glass rounded-3xl border border-white/50 p-6 shadow-soft sm:p-8">
+    <div id="merge" className="w-full">
+      <div id="convert-pdf" className={`${hideTabs ? '' : 'glass rounded-3xl border border-white/50 p-6 shadow-soft sm:p-8'}`}>
         <div className="mb-6">
-          <div className="mb-4 flex flex-wrap gap-2">
-            <a
-              href="#merge"
-              onClick={() => setMode("merge")}
-              className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
-                mode === "merge"
-                  ? "bg-brand-600 text-white"
-                  : "border border-brand-200 text-brand-700 hover:bg-brand-50"
-              }`}
-            >
-              Merge PDFs
-            </a>
-            <a
-              href="#convert-pdf"
-              onClick={() => setMode("convert")}
-              className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
-                mode === "convert"
-                  ? "bg-brand-600 text-white"
-                  : "border border-brand-200 text-brand-700 hover:bg-brand-50"
-              }`}
-            >
-              Convert PDF
-            </a>
-            <a
-              href="#remove-pages"
-              onClick={() => setMode("remove-pages")}
-              className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
-                mode === "remove-pages"
-                  ? "bg-brand-600 text-white"
-                  : "border border-brand-200 text-brand-700 hover:bg-brand-50"
-              }`}
-            >
-              Remove Pages
-            </a>
-          </div>
+          {!hideTabs && (
+            <div className="mb-4 flex flex-wrap gap-2">
+              <a
+                href="#merge"
+                onClick={() => setMode("merge")}
+                className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+                  mode === "merge"
+                    ? "bg-brand-600 text-white"
+                    : "border border-brand-200 text-brand-700 hover:bg-brand-50"
+                }`}
+              >
+                Merge PDFs
+              </a>
+              <a
+                href="#convert-pdf"
+                onClick={() => setMode("convert")}
+                className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+                  mode === "convert"
+                    ? "bg-brand-600 text-white"
+                    : "border border-brand-200 text-brand-700 hover:bg-brand-50"
+                }`}
+              >
+                Convert PDF
+              </a>
+              <a
+                href="#remove-pages"
+                onClick={() => setMode("remove-pages")}
+                className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+                  mode === "remove-pages"
+                    ? "bg-brand-600 text-white"
+                    : "border border-brand-200 text-brand-700 hover:bg-brand-50"
+                }`}
+              >
+                Remove Pages
+              </a>
+            </div>
+          )}
           <h2 className="text-2xl font-bold text-slate-900">
             {mode === "convert" ? "Convert Your File" : mode === "remove-pages" ? "Remove PDF Pages" : "Merge Your Files"}
           </h2>
@@ -392,6 +399,6 @@ export default function MergePanel() {
           )}
         </div>
       </div>
-    </section>
+    </div>
   );
 }
