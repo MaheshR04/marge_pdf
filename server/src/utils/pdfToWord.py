@@ -4,7 +4,8 @@ from pdf2docx import Converter
 def convert_pdf_to_docx(pdf_path, docx_path):
     try:
         cv = Converter(pdf_path)
-        cv.convert(docx_path)
+        # Enable multi-processing for faster conversion of large PDFs
+        cv.convert(docx_path, multi_processing=True)
         cv.close()
         print("SUCCESS")
     except Exception as e:

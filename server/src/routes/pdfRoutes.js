@@ -33,7 +33,7 @@ const PDF_MIME_TYPES = new Set(["application/pdf"]);
 const DOCX_MIME_TYPES = new Set([
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 ]);
-const IMAGE_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/jpg"]);
+const IMAGE_MIME_TYPES = new Set(["image/png", "image/png", "image/jpg"]);
 const IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg"]);
 
 function getExtension(fileName = "") {
