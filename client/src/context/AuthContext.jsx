@@ -60,7 +60,8 @@ export function AuthProvider({ children }) {
       isAuthenticated: Boolean(token),
       login,
       register,
-      logout
+      logout,
+      updateUser: persistAuth
     }),
     [token, user, loading]
   );

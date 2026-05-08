@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import MergePanel from "./MergePanel";
 import AuthModal from "./AuthModal";
+import { updateProfile, updatePassword } from "../services/api";
 
 const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
   <button
@@ -109,9 +110,35 @@ const CrownIcon = ({ className }) => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
   </svg>
 );
+const LogOutIcon = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+  </svg>
+);
+const UserCircleIcon = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+const ShieldIcon = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+  </svg>
+);
+const EyeIcon = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+  </svg>
+);
+const EyeSlashIcon = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a10.024 10.024 0 014.504-4.657m15.893 1.583A10.046 10.046 0 0121.542 12c-1.274 4.057-5.064 7-9.542 7-1.447 0-2.813-.306-4.043-.857M9.88 9.88l4.24 4.24M3 3l18 18" />
+  </svg>
+);
 
 export default function Dashboard() {
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, token, updateUser } = useAuth();
   const { isDarkMode, toggleDarkMode } = useTheme();
   const [activeTab, setActiveTab] = useState(() => {
     const hash = window.location.hash;
@@ -122,6 +149,57 @@ export default function Dashboard() {
   });
   const [authMode, setAuthMode] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Settings State
+  const [newName, setNewName] = useState(user?.name || "");
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [passwordData, setPasswordData] = useState({ current: "", new: "", confirm: "" });
+  const [showPasswords, setShowPasswords] = useState({ current: false, new: false, confirm: false });
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [message, setMessage] = useState({ text: "", type: "" }); // type: success, error
+
+  useEffect(() => {
+    if (user?.name) setNewName(user.name);
+  }, [user]);
+
+  const handleUpdateProfile = async () => {
+    if (!newName.trim()) return;
+    setIsUpdatingProfile(true);
+    setMessage({ text: "", type: "" });
+    try {
+      const data = await updateProfile({ name: newName }, token);
+      updateUser(data);
+      setMessage({ text: "Profile updated successfully!", type: "success" });
+    } catch (error) {
+      setMessage({ text: error.message, type: "error" });
+    } finally {
+      setIsUpdatingProfile(false);
+      setTimeout(() => setMessage({ text: "", type: "" }), 3000);
+    }
+  };
+
+  const handleUpdatePassword = async (e) => {
+    e.preventDefault();
+    if (passwordData.new !== passwordData.confirm) {
+      alert("New passwords do not match.");
+      return;
+    }
+    setIsUpdatingPassword(true);
+    try {
+      await updatePassword({ 
+        currentPassword: passwordData.current, 
+        newPassword: passwordData.new 
+      }, token);
+      alert("Password updated successfully!");
+      setIsPasswordModalOpen(false);
+      setPasswordData({ current: "", new: "", confirm: "" });
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -236,13 +314,10 @@ export default function Dashboard() {
               {isDarkMode ? <SunIcon className="size-5" /> : <MoonIcon className="size-5" />}
             </button>
             {isAuthenticated ? (
-              <div className="group relative">
+              <div className="relative">
                 <button className="flex size-10 items-center justify-center rounded-full bg-indigo-600 text-sm font-bold text-white shadow-md">
                   {user?.name?.charAt(0).toUpperCase() || "U"}
                 </button>
-                <div className="absolute right-0 top-full mt-2 hidden w-48 rounded-xl border border-slate-100 bg-white p-2 shadow-xl group-hover:block dark:bg-slate-800 dark:border-slate-700">
-                   <button onClick={logout} className="w-full rounded-lg px-4 py-2 text-left text-sm font-medium text-rose-600 hover:bg-rose-50">Logout</button>
-                </div>
               </div>
             ) : (
               <button 
@@ -352,20 +427,97 @@ export default function Dashboard() {
             </div>
           </div>
         ) : activeTab === "settings" ? (
-          <div className="rounded-[32px] bg-white p-8 shadow-soft dark:bg-slate-800 dark:shadow-none dark:border dark:border-slate-700">
-            <h2 className="mb-6 text-xl font-bold text-slate-900 dark:text-white">Settings</h2>
-            <div className="max-w-md space-y-6">
-              <div>
-                <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">Display Name</label>
-                <input type="text" defaultValue={user?.name} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:bg-slate-900 dark:border-slate-700 dark:text-white" />
+          <div className="max-w-4xl space-y-6">
+            <div className="rounded-[32px] bg-white p-8 shadow-soft dark:bg-slate-800 dark:shadow-none dark:border dark:border-slate-700">
+              <div className="mb-8 flex items-center gap-4">
+                <div className="flex size-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400">
+                  <UserCircleIcon className="size-6" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">Profile Settings</h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Manage your personal information and how others see you.</p>
+                </div>
               </div>
-              <div>
-                <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">Email Address</label>
-                <input type="email" defaultValue={user?.email} disabled className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-500 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-500" />
+
+              <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+                <div className="space-y-4">
+                  <div>
+                    <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">Display Name</label>
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm transition-all focus:border-indigo-500 focus:bg-white focus:outline-none dark:bg-slate-900 dark:border-slate-700 dark:text-white dark:focus:border-indigo-400" 
+                        placeholder="Your Name"
+                      />
+                    </div>
+                    <p className="mt-1.5 text-[11px] text-slate-400">This name will be displayed in your profile and communications.</p>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">Email Address</label>
+                    <input 
+                      type="email" 
+                      defaultValue={user?.email} 
+                      disabled 
+                      className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-500 cursor-not-allowed dark:bg-slate-900/50 dark:border-slate-700 dark:text-slate-500" 
+                    />
+                    <p className="mt-1.5 text-[11px] text-slate-400">Email cannot be changed as it is linked to your account.</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col justify-end pb-1">
+                  {message.text && (
+                    <div className={`mb-4 rounded-lg p-3 text-xs font-medium ${message.type === 'success' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20' : 'bg-rose-50 text-rose-600 dark:bg-rose-900/20'}`}>
+                      {message.text}
+                    </div>
+                  )}
+                  <button 
+                    onClick={handleUpdateProfile}
+                    disabled={isUpdatingProfile || newName === user?.name}
+                    className="w-full rounded-xl bg-indigo-600 px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-indigo-100 transition-all hover:bg-indigo-700 hover:shadow-indigo-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed dark:shadow-none"
+                  >
+                    {isUpdatingProfile ? "Updating..." : "Save Profile Changes"}
+                  </button>
+                </div>
               </div>
-              <button className="rounded-xl bg-indigo-600 px-8 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-100 transition-all hover:bg-indigo-700">
-                Save Changes
-              </button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              {/* Account Security Card */}
+              <div className="rounded-[32px] bg-white p-8 shadow-soft dark:bg-slate-800 dark:shadow-none dark:border dark:border-slate-700">
+                <div className="mb-6 flex items-center gap-4">
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
+                    <ShieldIcon className="size-5" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">Security</h3>
+                </div>
+                <p className="mb-6 text-sm text-slate-500 dark:text-slate-400">Keep your account secure by managing your password and sessions.</p>
+                <button 
+                  onClick={() => setIsPasswordModalOpen(true)}
+                  className="w-full rounded-xl border border-slate-200 bg-white py-2.5 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50 hover:border-slate-300 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700"
+                >
+                  Update Password
+                </button>
+              </div>
+
+              {/* Danger Zone Card */}
+              <div className="rounded-[32px] bg-white p-8 shadow-soft dark:bg-slate-800 dark:shadow-none dark:border dark:border-slate-700">
+                <div className="mb-6 flex items-center gap-4">
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400">
+                    <LogOutIcon className="size-5" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">Account Session</h3>
+                </div>
+                <p className="mb-6 text-sm text-slate-500 dark:text-slate-400">Ready to leave? Make sure you have saved all your work before logging out.</p>
+                <button 
+                  onClick={logout}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-rose-50 py-3 text-sm font-bold text-rose-600 transition-all hover:bg-rose-600 hover:text-white active:scale-[0.98] dark:bg-rose-900/20 dark:hover:bg-rose-600"
+                >
+                  <LogOutIcon className="size-4" />
+                  Logout from Account
+                </button>
+              </div>
             </div>
           </div>
         ) : (
@@ -377,6 +529,99 @@ export default function Dashboard() {
           </div>
         )}
       </main>
+
+      {/* Password Update Modal */}
+      {isPasswordModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-[32px] bg-white p-8 shadow-2xl dark:bg-slate-800 dark:border dark:border-slate-700">
+            <div className="mb-6 flex items-center justify-between">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">Update Password</h3>
+              <button 
+                onClick={() => setIsPasswordModalOpen(false)}
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700"
+              >
+                <XMarkIcon className="size-6" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleUpdatePassword} className="space-y-4">
+              <div>
+                <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">Current Password</label>
+                <div className="relative">
+                  <input 
+                    type={showPasswords.current ? "text" : "password"} 
+                    required
+                    value={passwordData.current}
+                    onChange={(e) => setPasswordData({ ...passwordData, current: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-11 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none dark:bg-slate-900 dark:border-slate-700 dark:text-white" 
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showPasswords.current ? <EyeSlashIcon className="size-5" /> : <EyeIcon className="size-5" />}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">New Password</label>
+                <div className="relative">
+                  <input 
+                    type={showPasswords.new ? "text" : "password"} 
+                    required
+                    value={passwordData.new}
+                    onChange={(e) => setPasswordData({ ...passwordData, new: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-11 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none dark:bg-slate-900 dark:border-slate-700 dark:text-white" 
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showPasswords.new ? <EyeSlashIcon className="size-5" /> : <EyeIcon className="size-5" />}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">Confirm New Password</label>
+                <div className="relative">
+                  <input 
+                    type={showPasswords.confirm ? "text" : "password"} 
+                    required
+                    value={passwordData.confirm}
+                    onChange={(e) => setPasswordData({ ...passwordData, confirm: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-11 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none dark:bg-slate-900 dark:border-slate-700 dark:text-white" 
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showPasswords.confirm ? <EyeSlashIcon className="size-5" /> : <EyeIcon className="size-5" />}
+                  </button>
+                </div>
+              </div>
+              <div className="pt-4 flex gap-3">
+                <button 
+                  type="button"
+                  onClick={() => setIsPasswordModalOpen(false)}
+                  className="flex-1 rounded-xl border border-slate-200 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-700"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  disabled={isUpdatingPassword}
+                  className="flex-1 rounded-xl bg-indigo-600 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-100 hover:bg-indigo-700 disabled:opacity-50 dark:shadow-none"
+                >
+                  {isUpdatingPassword ? "Updating..." : "Update Password"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

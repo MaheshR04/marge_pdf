@@ -79,3 +79,26 @@ export async function mergePdfs(files, token, outputFormat = "pdf", mode = "merg
 
   return { blob, fileName };
 }
+export async function updateProfile(payload, token) {
+  const response = await request("/auth/profile", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+  return response.json();
+}
+
+export async function updatePassword(payload, token) {
+  const response = await request("/auth/password", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+  return response.json();
+}
