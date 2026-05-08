@@ -425,6 +425,39 @@ function addTextToDocx(bodyParts, text) {
 
 export async function createDocxFromFiles(files, options = {}) {
   const includeFileHeadings = options.includeFileHeadings ?? false;
+
+  const processedFiles = await Promise.all(
+    files.map(async (file) => {
+      if (isDocxFile(file)) {
+        const result = await mammoth.extractRawText({ buffer: file.buffer });
+        return {
+          type: "docx",
+          name: file.originalname,
+          text: result.value || "No readable text found in this Word file."
+        };
+      }
+      if (isImageFile(file)) {
+        return {
+          type: "image",
+          name: file.originalname,
+          buffer: file.buffer,
+          isPng: isPngFile(file)
+        };
+      }
+      if (isPdfFile(file)) {
+        const text = await extractPdfText(file);
+        return {
+          type: "pdf",
+          name: file.originalname,
+          text
+        };
+      }
+      throw new Error(
+        `Unsupported file type: ${file.originalname}. Use PDF, Word (.docx), PNG, JPG, or JPEG.`
+      );
+    })
+  );
+
   const mediaEntries = [];
   const relationshipEntries = [];
   const contentTypes = [
@@ -439,27 +472,19 @@ export async function createDocxFromFiles(files, options = {}) {
   let relIndex = 1;
   let imageIndex = 1;
 
-  for (const [index, file] of files.entries()) {
+  processedFiles.forEach((file, index) => {
     if (index > 0) {
       bodyParts.push(docxPageBreak());
     }
 
-    if (isDocxFile(file)) {
-      const result = await mammoth.extractRawText({ buffer: file.buffer });
-      if (includeFileHeadings) {
-        bodyParts.push(docxHeading(file.originalname));
-      }
-      addTextToDocx(bodyParts, result.value || "No readable text found in this Word file.");
-      continue;
+    if (includeFileHeadings) {
+      bodyParts.push(docxHeading(file.name));
     }
 
-    if (isImageFile(file)) {
-      const extension = isPngFile(file) ? "png" : "jpg";
+    if (file.type === "image") {
+      const extension = file.isPng ? "png" : "jpg";
       const mediaPath = `word/media/image${imageIndex}.${extension}`;
       const relId = `rId${relIndex}`;
-      if (includeFileHeadings) {
-        bodyParts.push(docxHeading(file.originalname));
-      }
       bodyParts.push(docxImage(relId, file, imageIndex));
       mediaEntries.push({ path: mediaPath, data: file.buffer });
       relationshipEntries.push(
@@ -467,22 +492,10 @@ export async function createDocxFromFiles(files, options = {}) {
       );
       relIndex += 1;
       imageIndex += 1;
-      continue;
+    } else {
+      addTextToDocx(bodyParts, file.text);
     }
-
-    if (isPdfFile(file)) {
-      if (includeFileHeadings) {
-        bodyParts.push(docxHeading(file.originalname));
-      }
-      const text = await extractPdfText(file);
-      addTextToDocx(bodyParts, text);
-      continue;
-    }
-
-    throw new Error(
-      `Unsupported file type: ${file.originalname}. Use PDF, Word (.docx), PNG, JPG, or JPEG.`
-    );
-  }
+  });
 
   const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>${bodyParts.join("")}<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/></w:sectPr></w:body></w:document>`;
   const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${relationshipEntries.join("")}</Relationships>`;
@@ -586,9 +599,12 @@ router.post("/merge", (req, res, next) => {
 
     const mergedPdf = await PDFDocument.create();
 
-    for (const file of files) {
-      const normalizedPdfBuffer = await convertInputToPdfBuffer(file);
-      const sourcePdf = await PDFDocument.load(normalizedPdfBuffer);
+    const normalizedPdfBuffers = await Promise.all(
+      files.map((file) => convertInputToPdfBuffer(file))
+    );
+
+    for (const buffer of normalizedPdfBuffers) {
+      const sourcePdf = await PDFDocument.load(buffer);
       const pages = await mergedPdf.copyPages(sourcePdf, sourcePdf.getPageIndices());
       pages.forEach((page) => mergedPdf.addPage(page));
     }

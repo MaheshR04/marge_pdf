@@ -35,7 +35,7 @@ router.post("/register", async (req, res) => {
     // Run password hashing and email check in parallel to save time
     const [existingUser, hashedPassword] = await Promise.all([
       User.findOne({ email: cleanEmail }),
-      bcrypt.hash(password, 10)
+      bcrypt.hash(password, 8)
     ]);
 
     if (existingUser) {
