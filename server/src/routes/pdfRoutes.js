@@ -693,6 +693,8 @@ router.post("/merge", (req, res, next) => {
         res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
         return res.send(docxBuffer);
       }
+    }
+
     if (outputFormat === "pptx") {
       try {
         const pptxBuffer = await convertPdfToPptPython(pdfBytes);
