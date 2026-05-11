@@ -411,6 +411,34 @@ async function convertPdfToDocxPython(pdfBuffer) {
   }
 }
 
+async function convertPdfToPptPython(pdfBuffer) {
+  const tmpDir = os.tmpdir();
+  const id = uuidv4();
+  const pdfPath = path.join(tmpDir, `${id}.pdf`);
+  const pptxPath = path.join(tmpDir, `${id}.pptx`);
+
+  try {
+    await fs.writeFile(pdfPath, pdfBuffer);
+    const pythonScript = path.join(__dirname, "../utils/pdfToPpt.py");
+    const execOptions = { 
+      maxBuffer: 10 * 1024 * 1024,
+      timeout: 60000 
+    };
+    
+    try {
+      await execFile("python3", [pythonScript, pdfPath, pptxPath], execOptions);
+    } catch (err) {
+      await execFile("python", [pythonScript, pdfPath, pptxPath], execOptions);
+    }
+    
+    const pptxBuffer = await fs.readFile(pptxPath);
+    return pptxBuffer;
+  } finally {
+    try { await fs.unlink(pdfPath); } catch (e) {}
+    try { await fs.unlink(pptxPath); } catch (e) {}
+  }
+}
+
 function addTextToDocx(bodyParts, text) {
   const paragraphs = (text || "")
     .split(/\r?\n/)
@@ -518,7 +546,9 @@ router.post("/merge", (req, res, next) => {
 }, authMiddleware, upload.array("pdfs", 20), async (req, res) => {
   try {
     const files = req.files || [];
-    const outputFormat = req.body?.outputFormat === "docx" ? "docx" : "pdf";
+    let outputFormat = "pdf";
+    if (req.body?.outputFormat === "docx") outputFormat = "docx";
+    if (req.body?.outputFormat === "pptx") outputFormat = "pptx";
     const mode = req.body?.mode || "merge";
     
     let minimumFiles = 2;
@@ -574,6 +604,18 @@ router.post("/merge", (req, res, next) => {
         }
       }
 
+      if (outputFormat === "pptx") {
+        try {
+          const pptxBuffer = await convertPdfToPptPython(Buffer.from(pdfBytes));
+          const fileName = `edited-${Date.now()}.pptx`;
+          res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.presentationml.presentation");
+          res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+          return res.send(pptxBuffer);
+        } catch (err) {
+          console.error("Conversion to PPT failed in remove-pages mode:", err);
+        }
+      }
+
       const fileName = `edited-${Date.now()}.pdf`;
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
@@ -594,6 +636,19 @@ router.post("/merge", (req, res, next) => {
         res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
         res.setHeader("Content-Disposition", `attachment; filename="converted-${Date.now()}.docx"`);
         return res.send(docxBuffer);
+      }
+    }
+
+    if (outputFormat === "pptx" && files.length === 1 && isPdfFile(files[0])) {
+      try {
+        const pptxBuffer = await convertPdfToPptPython(files[0].buffer);
+        const fileName = `converted-${Date.now()}.pptx`;
+        res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.presentationml.presentation");
+        res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+        return res.send(pptxBuffer);
+      } catch (err) {
+        console.error("Direct PPT conversion failed:", err.message);
+        return res.status(500).json({ message: "Failed to convert PDF to PowerPoint." });
       }
     }
 
@@ -637,6 +692,20 @@ router.post("/merge", (req, res, next) => {
         );
         res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
         return res.send(docxBuffer);
+      }
+    if (outputFormat === "pptx") {
+      try {
+        const pptxBuffer = await convertPdfToPptPython(pdfBytes);
+        const fileName = `${mode === "convert" ? "converted" : mode === "remove-pages" ? "edited" : "merged"}-${Date.now()}.pptx`;
+        res.setHeader(
+          "Content-Type",
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        );
+        res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+        return res.send(pptxBuffer);
+      } catch (err) {
+        console.error("PPTX conversion failed:", err.message);
+        return res.status(500).json({ message: "Failed to convert to PowerPoint." });
       }
     }
 

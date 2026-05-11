@@ -223,10 +223,10 @@ export default function MergePanel({ initialMode, hideTabs }) {
           </h2>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             {mode === "convert"
-              ? "Add one PDF, Word .docx, or photo, then download as PDF or Word."
+              ? "Add one PDF, Word .docx, or photo, then download as PDF, Word, or PowerPoint."
               : mode === "remove-pages"
               ? "Add one PDF, enter page numbers to remove, then download the result."
-              : "Add at least two files (PDF, Word .docx, or photos), merge them, then download as PDF or Word."}
+              : "Add at least two files (PDF, Word .docx, or photos), merge them, then download as PDF, Word, or PowerPoint."}
           </p>
         </div>
 
@@ -303,6 +303,17 @@ export default function MergePanel({ initialMode, hideTabs }) {
                   }`}
                 >
                   Word (.docx)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOutputFormat("pptx")}
+                  className={`flex-1 rounded-xl py-3 text-sm font-bold transition-all border ${
+                    outputFormat === "pptx"
+                      ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100"
+                      : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-700 dark:hover:bg-slate-700"
+                  }`}
+                >
+                  PowerPoint (.pptx)
                 </button>
               </div>
             </div>
