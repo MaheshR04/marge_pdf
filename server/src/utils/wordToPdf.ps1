@@ -6,12 +6,16 @@ param (
 try {
     $word = New-Object -ComObject Word.Application
     $word.Visible = $false
-    $doc = $word.Documents.Open($inputPath)
+    $word.DisplayAlerts = 0 # wdAlertsNone
+    $doc = $word.Documents.Open($inputPath, $false, $true) # Open ReadOnly
     
     # wdFormatPDF = 17
     $doc.SaveAs($outputPath, 17)
-    $doc.Close()
+    $doc.Close(0) # wdDoNotSaveChanges
     $word.Quit()
+    $null = [System.Runtime.Interopservices.Marshal]::ReleaseComObject($word)
+    [System.GC]::Collect()
+    [System.GC]::WaitForPendingFinalizers()
     Write-Host "SUCCESS"
 } catch {
     Write-Error $_.Exception.Message

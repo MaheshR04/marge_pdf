@@ -21,7 +21,7 @@ def convert_pdf_to_pptx(pdf_path, pptx_path):
             
             # Convert page to image (pixmap)
             # Use a matrix to increase resolution (e.g., 2.0x zoom)
-            zoom = 2.0
+            zoom = 1.5
             mat = fitz.Matrix(zoom, zoom)
             pix = page.get_pixmap(matrix=mat)
             

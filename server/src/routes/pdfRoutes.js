@@ -691,8 +691,8 @@ router.post("/merge", (req, res, next) => {
 
     for (const buffer of normalizedPdfBuffers) {
       const sourcePdf = await PDFDocument.load(buffer);
-      const pages = await mergedPdf.copyPages(sourcePdf, sourcePdf.getPageIndices());
-      pages.forEach((page) => mergedPdf.addPage(page));
+      const copiedPages = await mergedPdf.copyPages(sourcePdf, sourcePdf.getPageIndices());
+      copiedPages.forEach((page) => mergedPdf.addPage(page));
     }
 
     const pdfBytes = await mergedPdf.save();
