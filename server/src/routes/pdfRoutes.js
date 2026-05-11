@@ -215,9 +215,16 @@ async function convertInputToPdfBuffer(file) {
   }
 
   if (isDocxFile(file)) {
-    const result = await mammoth.extractRawText({ buffer: file.buffer });
-    const pdfBytes = await createPdfFromText(result.value);
-    return Buffer.from(pdfBytes);
+    try {
+      // Try high-quality PowerShell/Word conversion first
+      const pdfBuffer = await convertWordToPdfPs(file.buffer);
+      return pdfBuffer;
+    } catch (err) {
+      console.error("High-quality Word to PDF conversion failed, using fallback:", err.message);
+      const result = await mammoth.extractRawText({ buffer: file.buffer });
+      const pdfBytes = await createPdfFromText(result.value);
+      return Buffer.from(pdfBytes);
+    }
   }
 
   if (isImageFile(file)) {
@@ -439,6 +446,32 @@ async function convertPdfToPptPython(pdfBuffer) {
   }
 }
 
+async function convertWordToPdfPs(docxBuffer) {
+  const tmpDir = os.tmpdir();
+  const id = uuidv4();
+  const docxPath = path.join(tmpDir, `${id}.docx`);
+  const pdfPath = path.join(tmpDir, `${id}.pdf`);
+
+  try {
+    await fs.writeFile(docxPath, docxBuffer);
+    const psScript = path.join(__dirname, "../utils/wordToPdf.ps1");
+    
+    // Run PowerShell script
+    await execFile("powershell", [
+      "-ExecutionPolicy", "Bypass",
+      "-File", psScript,
+      "-inputPath", docxPath,
+      "-outputPath", pdfPath
+    ]);
+    
+    const pdfBuffer = await fs.readFile(pdfPath);
+    return pdfBuffer;
+  } finally {
+    try { await fs.unlink(docxPath); } catch (e) {}
+    try { await fs.unlink(pdfPath); } catch (e) {}
+  }
+}
+
 function addTextToDocx(bodyParts, text) {
   const paragraphs = (text || "")
     .split(/\r?\n/)
@@ -565,12 +598,10 @@ router.post("/merge", (req, res, next) => {
     }
 
     if (mode === "remove-pages") {
-      if (!isPdfFile(files[0])) {
-        return res.status(400).json({ message: "Remove pages only works with PDF files." });
-      }
+      const inputBuffer = await convertInputToPdfBuffer(files[0]);
 
       const pagesToRemoveStr = req.body?.pagesToRemove || "";
-      const sourcePdf = await PDFDocument.load(files[0].buffer);
+      const sourcePdf = await PDFDocument.load(inputBuffer);
       const totalPages = sourcePdf.getPageCount();
       const indicesToRemove = parsePageRanges(pagesToRemoveStr, totalPages);
 

@@ -225,7 +225,7 @@ export default function MergePanel({ initialMode, hideTabs }) {
             {mode === "convert"
               ? "Add one PDF, Word .docx, or photo, then download as PDF, Word, or PowerPoint."
               : mode === "remove-pages"
-              ? "Add one PDF, enter page numbers to remove, then download the result."
+              ? "Add one PDF or Word file, enter page numbers to remove, then download the result."
               : "Add at least two files (PDF, Word .docx, or photos), merge them, then download as PDF, Word, or PowerPoint."}
           </p>
         </div>
@@ -268,7 +268,7 @@ export default function MergePanel({ initialMode, hideTabs }) {
                 </div>
                 <p className="text-sm font-bold text-slate-900 dark:text-white">
                   {mode === "remove-pages" 
-                    ? "Click to select a PDF file" 
+                    ? "Click to select a PDF or Word file" 
                     : "Click or drag & drop files here"}
                 </p>
                 <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
