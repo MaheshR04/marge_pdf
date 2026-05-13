@@ -15,6 +15,9 @@ export function authMiddleware(req, res, next) {
     req.user = payload;
     return next();
   } catch (error) {
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({ message: "Unauthorized: token expired." });
+    }
     return res.status(401).json({ message: "Unauthorized: invalid token." });
   }
 }

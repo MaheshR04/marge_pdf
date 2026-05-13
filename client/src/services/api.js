@@ -10,6 +10,10 @@ export async function request(path, options = {}) {
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      window.dispatchEvent(new CustomEvent("app-unauthorized"));
+    }
+
     let message = "Something went wrong.";
     try {
       const data = await response.json();
