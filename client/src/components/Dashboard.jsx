@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import MergePanel from "./MergePanel";
+import CreatePanel from "./CreatePanel";
 import AuthModal from "./AuthModal";
 import { updateProfile, updatePassword } from "../services/api";
 
@@ -60,6 +61,11 @@ const TrashIcon = ({ className }) => (
 const FileIcon = ({ className }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+  </svg>
+);
+const CreateIcon = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
   </svg>
 );
 const SettingsIcon = ({ className }) => (
@@ -145,6 +151,7 @@ export default function Dashboard() {
     if (hash === "#merge") return "merge";
     if (hash === "#convert-pdf") return "convert";
     if (hash === "#remove-pages") return "remove";
+    if (hash === "#create-pdf") return "create";
     return "dashboard";
   });
   const [authMode, setAuthMode] = useState(null);
@@ -207,6 +214,7 @@ export default function Dashboard() {
       if (hash === "#merge") setActiveTab("merge");
       else if (hash === "#convert-pdf") setActiveTab("convert");
       else if (hash === "#remove-pages") setActiveTab("remove");
+      else if (hash === "#create-pdf") setActiveTab("create");
       else if (!hash || hash === "#dashboard") setActiveTab("dashboard");
     };
     window.addEventListener("hashchange", handleHashChange);
@@ -224,6 +232,7 @@ export default function Dashboard() {
     if (tab === "merge") window.location.hash = "#merge";
     if (tab === "convert") window.location.hash = "#convert-pdf";
     if (tab === "remove") window.location.hash = "#remove-pages";
+    if (tab === "create") window.location.hash = "#create-pdf";
   };
 
   return (
@@ -257,6 +266,7 @@ export default function Dashboard() {
 
         <nav className="space-y-1">
           <SidebarItem icon={DashboardIcon} label="Dashboard" active={activeTab === "dashboard"} onClick={() => { setActiveTab("dashboard"); setIsSidebarOpen(false); }} />
+          <SidebarItem icon={CreateIcon} label="Create PDF" active={activeTab === "create"} onClick={() => { handleToolClick("create"); setIsSidebarOpen(false); }} />
           <SidebarItem icon={MergeIcon} label="Merge PDF" active={activeTab === "merge"} onClick={() => { handleToolClick("merge"); setIsSidebarOpen(false); }} />
           <SidebarItem icon={ConvertIcon} label="Convert" active={activeTab === "convert"} onClick={() => { handleToolClick("convert"); setIsSidebarOpen(false); }} />
           <SidebarItem icon={TrashIcon} label="Remove Page" active={activeTab === "remove"} onClick={() => { handleToolClick("remove"); setIsSidebarOpen(false); }} />
@@ -300,6 +310,7 @@ export default function Dashboard() {
                 {activeTab === "merge" ? "Merge PDF" : 
                  activeTab === "convert" ? "Convert PDF" : 
                  activeTab === "remove" ? "Remove Page" : 
+                 activeTab === "create" ? "Create PDF" : 
                  activeTab === "recent" ? "Recent Files" :
                  activeTab === "settings" ? "Settings" : "Dashboard"}
               </h1>
@@ -352,7 +363,15 @@ export default function Dashboard() {
             </section>
 
             {/* Tool Cards */}
-            <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
+            <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+              <ToolCard 
+                icon={CreateIcon} 
+                title="Create PDF" 
+                description="Write or paste text to generate a PDF." 
+                buttonText="Get Started" 
+                buttonColor="bg-amber-500"
+                onClick={() => handleToolClick("create")}
+              />
               <ToolCard 
                 icon={MergeIcon} 
                 title="Merge PDF" 
@@ -519,6 +538,10 @@ export default function Dashboard() {
                 </button>
               </div>
             </div>
+          </div>
+        ) : activeTab === "create" ? (
+          <div className="rounded-[32px] bg-white p-8 shadow-soft dark:bg-slate-800 dark:shadow-none dark:border dark:border-slate-700">
+            <CreatePanel hideTabs={true} />
           </div>
         ) : (
           <div className="rounded-[32px] bg-white p-8 shadow-soft dark:bg-slate-800 dark:shadow-none dark:border dark:border-slate-700">

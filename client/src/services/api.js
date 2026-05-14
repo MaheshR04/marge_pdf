@@ -106,3 +106,21 @@ export async function updatePassword(payload, token) {
   });
   return response.json();
 }
+
+export async function createPdf(payload, token) {
+  const response = await request("/pdf/create", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const contentDisposition = response.headers.get("content-disposition") || "";
+  const match = contentDisposition.match(/filename="?([^"]+)"?/i);
+  const fileName = match?.[1] || "document.pdf";
+  const blob = await response.blob();
+
+  return { blob, fileName };
+}

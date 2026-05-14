@@ -138,48 +138,79 @@ function parsePageRanges(rangeStr, totalPages) {
   return pages;
 }
 
-async function createPdfFromText(text) {
+async function createPdfFromText(text, title = "") {
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
+  const boldFont = await pdf.embedFont(StandardFonts.HelveticaBold);
 
   const pageWidth = 595;
   const pageHeight = 842;
   const margin = 50;
+  const titleSize = 20;
   const bodySize = 11;
   const lineHeight = 16;
   const maxTextWidth = pageWidth - margin * 2;
 
-  const rawText = text?.trim() || "No readable text found in this Word file.";
-  const safeText = sanitizeTextForPdf(rawText);
-  const paragraphs = safeText
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0);
-
-  const contentLines =
-    paragraphs.length > 0
-      ? paragraphs.flatMap((p) => wrapTextToWidth(p, font, bodySize, maxTextWidth))
-      : wrapTextToWidth(safeText, font, bodySize, maxTextWidth);
-
   let page = pdf.addPage([pageWidth, pageHeight]);
   let y = pageHeight - margin;
 
+  if (title) {
+    const safeTitle = sanitizeTextForPdf(title);
+    page.drawText(safeTitle, {
+      x: margin,
+      y,
+      size: titleSize,
+      font: boldFont
+    });
+    y -= titleSize + 20;
+  }
+
+  const rawText = text?.trim() || "No content provided.";
+  const safeText = sanitizeTextForPdf(rawText);
+  const paragraphs = safeText
+    .split(/\r?\n/)
+    .map((line) => line.trim());
+
+  const contentLines = paragraphs.flatMap((p) => 
+    p ? wrapTextToWidth(p, font, bodySize, maxTextWidth) : [""]
+  );
+
   for (const line of contentLines) {
-    if (y < margin) {
+    if (y < margin + 20) {
       page = pdf.addPage([pageWidth, pageHeight]);
       y = pageHeight - margin;
     }
-    page.drawText(line, {
-      x: margin,
-      y,
-      size: bodySize,
-      font
-    });
+    if (line) {
+      page.drawText(line, {
+        x: margin,
+        y,
+        size: bodySize,
+        font
+      });
+    }
     y -= lineHeight;
   }
 
   return pdf.save();
 }
+
+router.post("/create", authMiddleware, async (req, res) => {
+  try {
+    const { title, content } = req.body;
+    if (!content) {
+      return res.status(400).json({ message: "Content is required." });
+    }
+
+    const pdfBytes = await createPdfFromText(content, title);
+    const fileName = `${(title || "document").replace(/[^a-z0-9]/gi, "_")}-${Date.now()}.pdf`;
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+    return res.send(Buffer.from(pdfBytes));
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to create PDF." });
+  }
+});
 
 async function createPdfFromImage(file) {
   const pdf = await PDFDocument.create();
