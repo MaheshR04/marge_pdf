@@ -108,13 +108,22 @@ export async function updatePassword(payload, token) {
 }
 
 export async function createPdf(payload, token) {
-  const response = await request("/pdf/create", {
-    method: "POST",
-    headers: {
+  let body, headers;
+  if (payload instanceof FormData) {
+    body = payload;
+    headers = { Authorization: `Bearer ${token}` };
+  } else {
+    body = JSON.stringify(payload);
+    headers = {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`
-    },
-    body: JSON.stringify(payload)
+    };
+  }
+
+  const response = await request("/pdf/create", {
+    method: "POST",
+    headers,
+    body
   });
 
   const contentDisposition = response.headers.get("content-disposition") || "";

@@ -194,20 +194,45 @@ async function createPdfFromText(text, title = "") {
   return pdf.save();
 }
 
-router.post("/create", authMiddleware, async (req, res) => {
+router.post("/create", authMiddleware, upload.array("files", 20), async (req, res) => {
   try {
     const { title, content } = req.body;
-    if (!content) {
-      return res.status(400).json({ message: "Content is required." });
+    let pdfBytes;
+
+    if (req.files && req.files.length > 0) {
+      const mergedPdf = await PDFDocument.create();
+
+      for (let i = 0; i < req.files.length; i++) {
+        const file = req.files[i];
+        let buffer;
+        const ext = getExtension(file.originalname);
+        if (ext === ".txt") {
+          const text = file.buffer.toString("utf-8");
+          const pageTitle = (i === 0 && title) ? title : "";
+          const tempBytes = await createPdfFromText(text, pageTitle);
+          buffer = Buffer.from(tempBytes);
+        } else {
+          buffer = await convertInputToPdfBuffer(file);
+        }
+        
+        const sourcePdf = await PDFDocument.load(buffer);
+        const copiedPages = await mergedPdf.copyPages(sourcePdf, sourcePdf.getPageIndices());
+        copiedPages.forEach((page) => mergedPdf.addPage(page));
+      }
+      pdfBytes = await mergedPdf.save();
+    } else if (content) {
+      pdfBytes = await createPdfFromText(content, title);
+    } else {
+      return res.status(400).json({ message: "Content or files are required." });
     }
 
-    const pdfBytes = await createPdfFromText(content, title);
     const fileName = `${(title || "document").replace(/[^a-z0-9]/gi, "_")}-${Date.now()}.pdf`;
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
     return res.send(Buffer.from(pdfBytes));
   } catch (error) {
+    console.error("Error creating PDF:", error);
     return res.status(500).json({ message: "Failed to create PDF." });
   }
 });

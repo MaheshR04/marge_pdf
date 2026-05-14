@@ -2,10 +2,18 @@ import React, { useState, useMemo, useEffect } from "react";
 import { createPdf } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 
+const ACCEPTED_EXTENSIONS = [".pdf", ".docx", ".png", ".jpg", ".jpeg", ".txt"];
+
+function isAllowedFile(file) {
+  const name = (file?.name || "").toLowerCase();
+  return ACCEPTED_EXTENSIONS.some((ext) => name.endsWith(ext));
+}
+
 export default function CreatePanel({ hideTabs }) {
   const { token, isAuthenticated } = useAuth();
   const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [isDragging, setIsDragging] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -22,9 +30,61 @@ export default function CreatePanel({ hideTabs }) {
 
   const canProcess = useMemo(() => {
     if (!isAuthenticated || isCreating) return false;
-    if (!content.trim()) return false;
+    if (selectedFiles.length === 0) return false;
     return true;
-  }, [isAuthenticated, isCreating, content]);
+  }, [isAuthenticated, isCreating, selectedFiles]);
+
+  const addFiles = (files) => {
+    const incomingFiles = Array.from(files || []);
+    if (incomingFiles.length === 0) return;
+
+    const invalidFiles = incomingFiles.filter((file) => !isAllowedFile(file));
+    const validFiles = incomingFiles.filter((file) => isAllowedFile(file));
+
+    if (invalidFiles.length > 0) {
+      setError("Only PDF, Word (.docx), text (.txt), PNG, JPG, and JPEG files are supported.");
+    } else {
+      setError("");
+    }
+
+    if (validFiles.length > 0) {
+      setSelectedFiles((prev) => {
+        const map = new Map(prev.map((f) => [`${f.name}-${f.size}`, f]));
+        validFiles.forEach((file) => {
+          map.set(`${file.name}-${file.size}`, file);
+        });
+        return Array.from(map.values());
+      });
+      setSuccess("");
+    }
+  };
+
+  const onFileChange = (event) => {
+    addFiles(event.target.files);
+    event.target.value = "";
+  };
+
+  const onDrop = (event) => {
+    event.preventDefault();
+    setIsDragging(false);
+    addFiles(event.dataTransfer.files);
+  };
+
+  const onDragOver = (event) => {
+    event.preventDefault();
+    setIsDragging(true);
+  };
+
+  const onDragLeave = (event) => {
+    event.preventDefault();
+    setIsDragging(false);
+  };
+
+  const removeFile = (indexToRemove) => {
+    setSelectedFiles((prev) => prev.filter((_, index) => index !== indexToRemove));
+    setSuccess("");
+    setError("");
+  };
 
   const onProcess = async () => {
     if (!canProcess) return;
@@ -34,36 +94,16 @@ export default function CreatePanel({ hideTabs }) {
     setSuccess("");
 
     try {
-      const response = await createPdf({ text: content, title }, token);
+      const formData = new FormData();
+      selectedFiles.forEach(file => formData.append("files", file));
+      if (title.trim()) {
+        formData.append("title", title);
+      }
+
+      const response = await createPdf(formData, token);
       
-      // The response should contain base64 PDF if it's JSON from standard api,
-      // wait, `api.js` returns `response.json()`
-      // Let's check how api.js expects. In the log:
-      /*
-      "    body: JSON.stringify(payload)\n  });\n  return response.json();\n}\n"
-      */
-      // Wait, mergePdfs returns blob. But createPdf returns JSON, I need to check the backend route `pdfRoutes.js`.
-      // The log shows:
-      // "async function createPdfFromText(text, title = \"\") {\n  const pdf = await PDFDocument.create();... return await pdf.saveAsBase64({ dataUri: true });"
-      // Wait, if it saves as base64, then `res.json({ pdf: base64String })` or something.
-      // Let me just fetch the data and then create a blob from base64 dataUri.
-      if (response && response.pdfData) {
-         // Assuming response is { message, pdfData, fileName }
-         const resData = response.pdfData;
-         // convert base64 dataUri to Blob
-         let base64str = resData;
-         if (resData.startsWith("data:application/pdf;base64,")) {
-             base64str = resData.split(",")[1];
-         }
-         const byteCharacters = atob(base64str);
-         const byteNumbers = new Array(byteCharacters.length);
-         for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-         }
-         const byteArray = new Uint8Array(byteNumbers);
-         const blob = new Blob([byteArray], { type: "application/pdf" });
-         
-         const blobUrl = URL.createObjectURL(blob);
+      if (response && response.blob) {
+         const blobUrl = URL.createObjectURL(response.blob);
          if (downloadUrl) {
            URL.revokeObjectURL(downloadUrl);
          }
@@ -92,7 +132,7 @@ export default function CreatePanel({ hideTabs }) {
 
   const clearContent = () => {
     setTitle("");
-    setContent("");
+    setSelectedFiles([]);
     setError("");
     setSuccess("");
     if (downloadUrl) {
@@ -109,7 +149,7 @@ export default function CreatePanel({ hideTabs }) {
             Create New PDF
           </h2>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Write or paste your text to generate a professional PDF document instantly.
+            Select files (e.g. Word, images, or text) to combine and generate a professional PDF document.
           </p>
         </div>
 
@@ -133,26 +173,48 @@ export default function CreatePanel({ hideTabs }) {
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm transition-all focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 dark:bg-slate-900 dark:border-slate-700 dark:text-white"
               />
             </div>
-            <div className="rounded-2xl bg-white p-5 border border-slate-100 shadow-sm dark:bg-slate-800 dark:border-slate-700 flex-1">
-              <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">
-                Content
+            
+            <div>
+              <label className="mb-3 block text-sm font-bold text-slate-700 dark:text-slate-300">
+                Upload Files
               </label>
-              <textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Start typing your content here..."
-                rows="10"
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm transition-all focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 dark:bg-slate-900 dark:border-slate-700 dark:text-white resize-y min-h-[200px]"
-              ></textarea>
+              <div
+                onDrop={onDrop}
+                onDragOver={onDragOver}
+                onDragLeave={onDragLeave}
+                onClick={() => document.getElementById('fileInput').click()}
+                className={`relative cursor-pointer overflow-hidden rounded-[24px] border-2 border-dashed p-6 sm:p-10 text-center transition-all ${
+                  isDragging
+                    ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20"
+                    : "border-slate-200 bg-slate-50/50 hover:border-indigo-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900/30 dark:hover:border-indigo-500"
+                }`}
+              >
+                <input
+                  id="fileInput"
+                  type="file"
+                  multiple
+                  accept=".pdf,.docx,.png,.jpg,.jpeg,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/png,image/jpeg,text/plain"
+                  onChange={onFileChange}
+                  className="hidden"
+                />
+                <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-white text-indigo-600 shadow-sm border border-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:text-indigo-400">
+                   <svg className="size-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                   </svg>
+                </div>
+                <p className="text-sm font-bold text-slate-900 dark:text-white">
+                  Click or drag & drop files here
+                </p>
+              </div>
             </div>
           </div>
 
           <div className="flex flex-col">
             <div className="mb-4 flex items-center justify-between">
                <label className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                  Document Preview
+                  Selected Files ({selectedFiles.length})
                </label>
-               {(content.length > 0 || title.length > 0) && (
+               {(selectedFiles.length > 0 || title.length > 0) && (
                  <button
                    onClick={clearContent}
                    className="text-xs font-bold text-rose-500 hover:underline"
@@ -170,16 +232,38 @@ export default function CreatePanel({ hideTabs }) {
                   <div className="text-lg font-bold text-slate-300 dark:text-slate-600 mb-4 border-b border-slate-200 pb-2 dark:border-slate-700 italic">Untitled Document</div>
                 )}
                 
-                {content ? (
-                  <div className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap flex-1 break-words">
-                    {content}
+                {selectedFiles.length > 0 ? (
+                  <div className="space-y-2">
+                    {selectedFiles.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:bg-slate-800 dark:border-slate-700">
+                        <div className="flex items-center gap-3">
+                          <div className={`flex size-10 items-center justify-center rounded-xl ${file.name.endsWith('.pdf') ? 'bg-rose-50 text-rose-500' : 'bg-indigo-50 text-indigo-600'} dark:bg-slate-700 dark:text-slate-300`}>
+                            <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </div>
+                          <div className="max-w-[150px] sm:max-w-[200px]">
+                            <p className="truncate text-sm font-bold text-slate-900 dark:text-white">{file.name}</p>
+                            <p className="text-[11px] text-slate-400 dark:text-slate-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => removeFile(index)}
+                          className="rounded-lg p-2 text-slate-300 hover:bg-white hover:text-rose-500 transition-all dark:hover:bg-slate-600"
+                        >
+                          <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 ) : (
                    <div className="flex-1 flex flex-col items-center justify-center text-center">
                      <svg className="size-8 text-slate-300 dark:text-slate-600 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                      </svg>
-                     <p className="text-sm text-slate-400 dark:text-slate-500">Your content will appear here</p>
+                     <p className="text-sm text-slate-400 dark:text-slate-500">Your selected files will appear here</p>
                    </div>
                 )}
               </div>
