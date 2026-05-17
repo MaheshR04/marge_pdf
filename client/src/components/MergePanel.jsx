@@ -47,6 +47,12 @@ export default function MergePanel({ initialMode, hideTabs }) {
     };
   }, [initialMode]);
 
+  useEffect(() => {
+    if (mode === "merge" && outputFormat === "pptx") {
+      setOutputFormat("pdf");
+    }
+  }, [mode, outputFormat]);
+
   const minimumFiles = (mode === "convert" || mode === "remove-pages") ? 1 : 2;
   const actionLabel = mode === "convert" ? "Convert" : mode === "remove-pages" ? "Process" : "Merge";
   const actionProgressLabel = mode === "convert" ? "Converting..." : mode === "remove-pages" ? "Processing..." : "Merging...";
@@ -223,7 +229,7 @@ export default function MergePanel({ initialMode, hideTabs }) {
               ? "Add one PDF, Word .docx, or photo, then download as PDF, Word, or PowerPoint."
               : mode === "remove-pages"
               ? "Add one PDF or Word file, enter page numbers to remove, then download the result."
-              : "Add at least two files (PDF, Word .docx, or photos), merge them, then download as PDF, Word, or PowerPoint."}
+              : "Add at least two files (PDF, Word .docx, or photos), merge them, then download as PDF or Word."}
           </p>
         </div>
 
@@ -301,17 +307,19 @@ export default function MergePanel({ initialMode, hideTabs }) {
                 >
                   Word (.docx)
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setOutputFormat("pptx")}
-                  className={`flex-1 rounded-xl py-3 text-sm font-bold transition-all border ${
-                    outputFormat === "pptx"
-                      ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100"
-                      : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-700 dark:hover:bg-slate-700"
-                  }`}
-                >
-                  PowerPoint (.pptx)
-                </button>
+                {mode !== "merge" && (
+                  <button
+                    type="button"
+                    onClick={() => setOutputFormat("pptx")}
+                    className={`flex-1 rounded-xl py-3 text-sm font-bold transition-all border ${
+                      outputFormat === "pptx"
+                        ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100"
+                        : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-700 dark:hover:bg-slate-700"
+                    }`}
+                  >
+                    PowerPoint (.pptx)
+                  </button>
+                )}
               </div>
             </div>
 
