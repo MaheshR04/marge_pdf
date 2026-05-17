@@ -20,13 +20,6 @@ export default function CreatePanel({ hideTabs }) {
   const [downloadUrl, setDownloadUrl] = useState("");
   const [downloadName, setDownloadName] = useState("document.pdf");
 
-  useEffect(() => {
-    return () => {
-      if (downloadUrl) {
-        URL.revokeObjectURL(downloadUrl);
-      }
-    };
-  }, [downloadUrl]);
 
   const canProcess = useMemo(() => {
     if (!isAuthenticated || isCreating) return false;

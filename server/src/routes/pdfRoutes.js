@@ -215,7 +215,7 @@ router.post("/create", authMiddleware, upload.array("files", 20), async (req, re
           buffer = await convertInputToPdfBuffer(file);
         }
         
-        const sourcePdf = await PDFDocument.load(buffer);
+        const sourcePdf = await PDFDocument.load(buffer, { ignoreEncryption: true });
         const copiedPages = await mergedPdf.copyPages(sourcePdf, sourcePdf.getPageIndices());
         copiedPages.forEach((page) => mergedPdf.addPage(page));
       }
@@ -277,9 +277,13 @@ async function convertInputToPdfBuffer(file) {
       return pdfBuffer;
     } catch (err) {
       console.error("High-quality Word to PDF conversion failed, using fallback:", err.message);
-      const result = await mammoth.extractRawText({ buffer: file.buffer });
-      const pdfBytes = await createPdfFromText(result.value);
-      return Buffer.from(pdfBytes);
+      try {
+        const result = await mammoth.extractRawText({ buffer: file.buffer });
+        const pdfBytes = await createPdfFromText(result.value);
+        return Buffer.from(pdfBytes);
+      } catch (mammothErr) {
+        throw new Error(`The file ${file.originalname} appears to be corrupted or is not a valid DOCX file.`);
+      }
     }
   }
 
@@ -657,7 +661,7 @@ router.post("/merge", (req, res, next) => {
       const inputBuffer = await convertInputToPdfBuffer(files[0]);
 
       const pagesToRemoveStr = req.body?.pagesToRemove || "";
-      const sourcePdf = await PDFDocument.load(inputBuffer);
+      const sourcePdf = await PDFDocument.load(inputBuffer, { ignoreEncryption: true });
       const totalPages = sourcePdf.getPageCount();
       const indicesToRemove = parsePageRanges(pagesToRemoveStr, totalPages);
 
@@ -746,7 +750,7 @@ router.post("/merge", (req, res, next) => {
     );
 
     for (const buffer of normalizedPdfBuffers) {
-      const sourcePdf = await PDFDocument.load(buffer);
+      const sourcePdf = await PDFDocument.load(buffer, { ignoreEncryption: true });
       const copiedPages = await mergedPdf.copyPages(sourcePdf, sourcePdf.getPageIndices());
       copiedPages.forEach((page) => mergedPdf.addPage(page));
     }

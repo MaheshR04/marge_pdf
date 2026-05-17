@@ -44,11 +44,8 @@ export default function MergePanel({ initialMode, hideTabs }) {
 
     return () => {
       window.removeEventListener("hashchange", syncModeFromHash);
-      if (downloadUrl) {
-        URL.revokeObjectURL(downloadUrl);
-      }
     };
-  }, [downloadUrl, initialMode]);
+  }, [initialMode]);
 
   const minimumFiles = (mode === "convert" || mode === "remove-pages") ? 1 : 2;
   const actionLabel = mode === "convert" ? "Convert" : mode === "remove-pages" ? "Process" : "Merge";

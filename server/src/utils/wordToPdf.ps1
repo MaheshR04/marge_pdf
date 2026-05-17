@@ -1,8 +1,8 @@
-param (
+ param (
     [string]$inputPath,
     [string]$outputPath
 )
-
+    
 try {
     $word = New-Object -ComObject Word.Application
     $word.Visible = $false
