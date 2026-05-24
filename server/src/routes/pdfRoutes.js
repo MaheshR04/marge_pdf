@@ -81,7 +81,13 @@ function wrapTextToWidth(text, font, fontSize, maxWidth) {
 
   for (const word of words) {
     const proposed = currentLine ? `${currentLine} ${word}` : word;
-    const width = font.widthOfTextAtSize(proposed, fontSize);
+    let width = 0;
+    try {
+      width = font.widthOfTextAtSize(proposed, fontSize);
+    } catch (e) {
+      // Fallback: estimate width if the standard font fails to measure certain characters
+      width = proposed.length * (fontSize * 0.55);
+    }
     if (width <= maxWidth) {
       currentLine = proposed;
     } else {
@@ -239,9 +245,21 @@ router.post("/create", authMiddleware, upload.array("files", 20), async (req, re
 
 async function createPdfFromImage(file) {
   const pdf = await PDFDocument.create();
-  const image = isPngFile(file)
-    ? await pdf.embedPng(file.buffer)
-    : await pdf.embedJpg(file.buffer);
+  let image;
+  try {
+    image = isPngFile(file)
+      ? await pdf.embedPng(file.buffer)
+      : await pdf.embedJpg(file.buffer);
+  } catch (err) {
+    // If primary guess fails, attempt the other embedding method as a fallback
+    try {
+      image = isPngFile(file)
+        ? await pdf.embedJpg(file.buffer)
+        : await pdf.embedPng(file.buffer);
+    } catch (fallbackErr) {
+      throw new Error(`The image file ${file.originalname} is corrupted or in an unsupported format.`);
+    }
+  }
 
   const pageWidth = 595;
   const pageHeight = 842;

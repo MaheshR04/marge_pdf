@@ -1,11 +1,11 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import { connectDB } from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import pdfRoutes from "./routes/pdfRoutes.js";
-
-dotenv.config();
 
 const app = express();
 const port = Number(process.env.PORT || 5000);
@@ -32,12 +32,21 @@ app.use("/api/auth", authRoutes);
 app.use("/api/pdf", pdfRoutes);
 
 app.use((err, _req, res, _next) => {
+  console.error("Global Error Handler caught an error:", err);
   if (err?.code === "LIMIT_FILE_SIZE") {
     return res
       .status(400)
       .json({ message: "File too large. Max file size is 20MB." });
   }
-  return res.status(500).json({ message: "Internal server error." });
+  return res.status(500).json({ message: err?.message || "Internal server error." });
+});
+
+process.on("uncaughtException", (error) => {
+  console.error("CRITICAL: Uncaught Exception caught globally:", error);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("CRITICAL: Unhandled Rejection at:", promise, "reason:", reason);
 });
 
 connectDB()
@@ -52,3 +61,4 @@ connectDB()
     console.error("Mongo connection failed:", error.message);
     process.exit(1);
   });
+

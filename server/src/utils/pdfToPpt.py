@@ -29,8 +29,9 @@ def convert_pdf_to_pptx(pdf_path, pptx_path):
             img_data = pix.tobytes("png")
             img_stream = io.BytesIO(img_data)
             
-            # Add a blank slide (layout 6 is usually blank)
-            blank_slide_layout = prs.slide_layouts[6]
+            # Add a blank slide (layout 6 is usually blank, fall back to index 0 if unavailable)
+            layout_index = 6 if len(prs.slide_layouts) > 6 else 0
+            blank_slide_layout = prs.slide_layouts[layout_index]
             slide = prs.slides.add_slide(blank_slide_layout)
             
             # Set slide size to match page aspect ratio
