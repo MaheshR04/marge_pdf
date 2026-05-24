@@ -4,7 +4,7 @@ import { useTheme } from "../context/ThemeContext";
 import MergePanel from "./MergePanel";
 import CreatePanel from "./CreatePanel";
 import AuthModal from "./AuthModal";
-import { updateProfile, updatePassword } from "../services/api";
+import { updateProfile, updatePassword, getRecentFiles, downloadRecentFile } from "../services/api";
 
 const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
   <button
@@ -220,11 +220,66 @@ export default function Dashboard() {
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
-  const recentFiles = [
-    { name: "Project_Proposal.pdf", size: "2.4 MB", time: "2 minutes ago", type: "pdf" },
-    { name: "Report_2024.pdf", size: "1.8 MB", time: "1 hour ago", type: "pdf" },
-    { name: "Document.docx", size: "245 KB", time: "3 hours ago", type: "word" },
-  ];
+  const [recentFiles, setRecentFiles] = useState([]);
+  const [loadingRecent, setLoadingRecent] = useState(false);
+
+  const fetchRecentFiles = async () => {
+    if (!isAuthenticated || !token) {
+      setRecentFiles([]);
+      return;
+    }
+    setLoadingRecent(true);
+    try {
+      const data = await getRecentFiles(token);
+      setRecentFiles(data);
+    } catch (err) {
+      console.error("Error loading recent files:", err);
+    } finally {
+      setLoadingRecent(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRecentFiles();
+  }, [isAuthenticated, token]);
+
+  const handleDownloadRecentFile = async (id, fileName) => {
+    try {
+      const { blob, fileName: serverFileName } = await downloadRecentFile(id, token);
+      const blobUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = blobUrl;
+      anchor.download = serverFileName || fileName;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      alert("Failed to download file from history: " + err.message);
+    }
+  };
+
+  const formatBytes = (bytes) => {
+    if (bytes === 0 || !bytes) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  };
+
+  const formatRelativeTime = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) return "just now";
+    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? "s" : ""} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+    return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+  };
 
   const handleToolClick = (tab) => {
     setActiveTab(tab);
@@ -440,26 +495,40 @@ export default function Dashboard() {
             <section className="rounded-2xl bg-white p-6 shadow-soft dark:bg-slate-800 dark:shadow-none dark:border dark:border-slate-700">
               <div className="mb-6 flex items-center justify-between">
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white">Recent Files</h2>
-                <button className="text-sm font-bold text-indigo-600 hover:underline">View All</button>
+                <button onClick={() => setActiveTab("recent")} className="text-sm font-bold text-indigo-600 hover:underline">View All</button>
               </div>
 
               <div className="space-y-1">
-                {recentFiles.map((file, i) => (
-                  <div key={i} className="flex items-center justify-between rounded-xl px-3 py-3 transition-all hover:bg-slate-50 dark:hover:bg-slate-700/50 group">
-                    <div className="flex items-center gap-4">
-                      <div className={`flex size-11 items-center justify-center rounded-xl ${file.type === 'pdf' ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-500' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-500'}`}>
-                        <FileIcon className="size-6" />
+                {!isAuthenticated ? (
+                  <p className="text-sm text-slate-500 dark:text-slate-400 py-4 text-center">Please login to view your recent files.</p>
+                ) : loadingRecent ? (
+                  <p className="text-sm text-slate-500 dark:text-slate-400 py-4 text-center">Loading recent files...</p>
+                ) : recentFiles.length === 0 ? (
+                  <p className="text-sm text-slate-400 dark:text-slate-500 py-4 text-center">No recent files found. Create or merge a PDF to get started!</p>
+                ) : (
+                  recentFiles.slice(0, 3).map((file, i) => (
+                    <div key={file._id || i} className="flex items-center justify-between rounded-xl px-3 py-3 transition-all hover:bg-slate-50 dark:hover:bg-slate-700/50 group">
+                      <div className="flex items-center gap-4">
+                        <div className={`flex size-11 items-center justify-center rounded-xl ${file.type === 'pdf' ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-500' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-500'}`}>
+                          <FileIcon className="size-6" />
+                        </div>
+                        <div className="max-w-[200px] sm:max-w-xs md:max-w-md">
+                          <h4 className="text-sm font-bold text-slate-900 dark:text-white truncate" title={file.name}>{file.name}</h4>
+                          <p className="text-[12px] text-slate-400 dark:text-slate-500">{formatBytes(file.size)} • {formatRelativeTime(file.createdAt)}</p>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-900 dark:text-white">{file.name}</h4>
-                        <p className="text-[12px] text-slate-400 dark:text-slate-500">{file.size} • {file.time}</p>
-                      </div>
+                      <button 
+                        onClick={() => handleDownloadRecentFile(file._id, file.name)}
+                        className="rounded-lg p-2 text-slate-400 transition-all hover:bg-slate-100 hover:text-indigo-600 dark:hover:bg-slate-700"
+                        title="Download file"
+                      >
+                        <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                      </button>
                     </div>
-                    <button className="rounded-lg p-2 text-slate-300 transition-all hover:bg-white hover:text-slate-600 dark:hover:bg-slate-600">
-                      <MoreIcon className="size-5" />
-                    </button>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </section>
           </>
@@ -467,20 +536,33 @@ export default function Dashboard() {
           <div className="rounded-2xl bg-white p-6 shadow-soft dark:bg-slate-800 dark:shadow-none dark:border dark:border-slate-700">
             <h2 className="mb-6 text-xl font-bold text-slate-900 dark:text-white">All Recent Files</h2>
             <div className="space-y-2">
-              {recentFiles.map((file, i) => (
-                <div key={i} className="flex items-center justify-between rounded-2xl border border-slate-50 px-6 py-4 transition-all hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700/50">
-                  <div className="flex items-center gap-4">
-                    <div className={`flex size-12 items-center justify-center rounded-xl ${file.type === 'pdf' ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-500' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-500'}`}>
-                      <FileIcon className="size-6" />
+              {!isAuthenticated ? (
+                <p className="text-sm text-slate-500 dark:text-slate-400 py-10 text-center">Please login to view your file history.</p>
+              ) : loadingRecent ? (
+                <p className="text-sm text-slate-500 dark:text-slate-400 py-10 text-center">Loading recent files...</p>
+              ) : recentFiles.length === 0 ? (
+                <p className="text-sm text-slate-400 dark:text-slate-500 py-10 text-center">No file history found. Your merged and converted files will appear here!</p>
+              ) : (
+                recentFiles.map((file, i) => (
+                  <div key={file._id || i} className="flex items-center justify-between rounded-2xl border border-slate-50 px-6 py-4 transition-all hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700/50">
+                    <div className="flex items-center gap-4">
+                      <div className={`flex size-12 items-center justify-center rounded-xl ${file.type === 'pdf' ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-500' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-500'}`}>
+                        <FileIcon className="size-6" />
+                      </div>
+                      <div className="max-w-[200px] sm:max-w-md">
+                        <h4 className="font-bold text-slate-900 dark:text-white truncate" title={file.name}>{file.name}</h4>
+                        <p className="text-sm text-slate-400 dark:text-slate-500">{formatBytes(file.size)} • {formatRelativeTime(file.createdAt)}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-bold text-slate-900 dark:text-white">{file.name}</h4>
-                      <p className="text-sm text-slate-400 dark:text-slate-500">{file.size} • {file.time}</p>
-                    </div>
+                    <button 
+                      onClick={() => handleDownloadRecentFile(file._id, file.name)}
+                      className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
+                    >
+                      Download
+                    </button>
                   </div>
-                  <button className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600">Download</button>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         ) : activeTab === "settings" ? (
@@ -579,13 +661,14 @@ export default function Dashboard() {
           </div>
         ) : activeTab === "create" ? (
           <div className="rounded-[32px] bg-white p-8 shadow-soft dark:bg-slate-800 dark:shadow-none dark:border dark:border-slate-700">
-            <CreatePanel hideTabs={true} />
+            <CreatePanel hideTabs={true} onProcessSuccess={fetchRecentFiles} />
           </div>
         ) : (
           <div className="rounded-[32px] bg-white p-8 shadow-soft dark:bg-slate-800 dark:shadow-none dark:border dark:border-slate-700">
             <MergePanel
               initialMode={activeTab === "remove" ? "remove-pages" : activeTab}
               hideTabs={true}
+              onProcessSuccess={fetchRecentFiles}
             />
           </div>
         )}

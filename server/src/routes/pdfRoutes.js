@@ -5,6 +5,7 @@ import zlib from "zlib";
 import { createRequire } from "module";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import { authMiddleware } from "../middleware/authMiddleware.js";
+import RecentFile from "../models/RecentFile.js";
 import { execFile as execFileCb } from "child_process";
 import util from "util";
 import fs from "fs/promises";
@@ -200,6 +201,30 @@ async function createPdfFromText(text, title = "") {
   return pdf.save();
 }
 
+async function saveRecentFile(userId, name, size, type, buffer) {
+  try {
+    // Only store files up to 15MB to prevent exceeding MongoDB limit (16MB BSON limit)
+    const MAX_DB_FILE_SIZE = 15 * 1024 * 1024;
+    if (size > MAX_DB_FILE_SIZE) {
+      console.log(`Skipping database save for file ${name} due to size limit: ${(size / 1024 / 1024).toFixed(2)} MB`);
+      return null;
+    }
+
+    const recentFile = await RecentFile.create({
+      userId,
+      name,
+      size,
+      type,
+      data: buffer
+    });
+    console.log(`Saved recent file ${name} to database for user ${userId}`);
+    return recentFile;
+  } catch (error) {
+    console.error("Error saving recent file to database:", error);
+    return null;
+  }
+}
+
 router.post("/create", authMiddleware, upload.array("files", 20), async (req, res) => {
   try {
     const { title, content } = req.body;
@@ -233,6 +258,10 @@ router.post("/create", authMiddleware, upload.array("files", 20), async (req, re
     }
 
     const fileName = `${(title || "document").replace(/[^a-z0-9]/gi, "_")}-${Date.now()}.pdf`;
+
+    if (req.user?.id) {
+      await saveRecentFile(req.user.id, fileName, pdfBytes.length, "pdf", Buffer.from(pdfBytes));
+    }
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
@@ -704,6 +733,9 @@ router.post("/merge", (req, res, next) => {
         try {
           const docxBuffer = await convertPdfToDocxPython(Buffer.from(pdfBytes));
           const fileName = `edited-${Date.now()}.docx`;
+          if (req.user?.id) {
+            await saveRecentFile(req.user.id, fileName, docxBuffer.length, "word", docxBuffer);
+          }
           res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
           res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
           return res.send(docxBuffer);
@@ -717,6 +749,9 @@ router.post("/merge", (req, res, next) => {
         try {
           const pptxBuffer = await convertPdfToPptPython(Buffer.from(pdfBytes));
           const fileName = `edited-${Date.now()}.pptx`;
+          if (req.user?.id) {
+            await saveRecentFile(req.user.id, fileName, pptxBuffer.length, "pptx", pptxBuffer);
+          }
           res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.presentationml.presentation");
           res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
           return res.send(pptxBuffer);
@@ -726,6 +761,9 @@ router.post("/merge", (req, res, next) => {
       }
 
       const fileName = `edited-${Date.now()}.pdf`;
+      if (req.user?.id) {
+        await saveRecentFile(req.user.id, fileName, pdfBytes.length, "pdf", Buffer.from(pdfBytes));
+      }
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
       return res.send(Buffer.from(pdfBytes));
@@ -736,12 +774,19 @@ router.post("/merge", (req, res, next) => {
       try {
         const docxBuffer = await convertPdfToDocxPython(files[0].buffer);
         const fileName = `converted-${Date.now()}.docx`;
+        if (req.user?.id) {
+          await saveRecentFile(req.user.id, fileName, docxBuffer.length, "word", docxBuffer);
+        }
         res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
         res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
         return res.send(docxBuffer);
       } catch (err) {
         console.error("Direct high-quality conversion failed, using fallback:", err.message);
         const docxBuffer = await createDocxFromFiles(files, { includeFileHeadings: false });
+        const fileName = `converted-${Date.now()}.docx`;
+        if (req.user?.id) {
+          await saveRecentFile(req.user.id, fileName, docxBuffer.length, "word", docxBuffer);
+        }
         res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
         res.setHeader("Content-Disposition", `attachment; filename="converted-${Date.now()}.docx"`);
         return res.send(docxBuffer);
@@ -752,6 +797,9 @@ router.post("/merge", (req, res, next) => {
       try {
         const pptxBuffer = await convertPdfToPptPython(files[0].buffer);
         const fileName = `converted-${Date.now()}.pptx`;
+        if (req.user?.id) {
+          await saveRecentFile(req.user.id, fileName, pptxBuffer.length, "pptx", pptxBuffer);
+        }
         res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.presentationml.presentation");
         res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
         return res.send(pptxBuffer);
@@ -781,6 +829,9 @@ router.post("/merge", (req, res, next) => {
         // Use the buffer directly to save memory
         const docxBuffer = await convertPdfToDocxPython(pdfBytes);
         const fileName = `${mode === "convert" ? "converted" : mode === "remove-pages" ? "edited" : "merged"}-${Date.now()}.docx`;
+        if (req.user?.id) {
+          await saveRecentFile(req.user.id, fileName, docxBuffer.length, "word", docxBuffer);
+        }
         res.setHeader(
           "Content-Type",
           "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -795,6 +846,9 @@ router.post("/merge", (req, res, next) => {
           includeFileHeadings: false
         });
         const fileName = `${mode === "convert" ? "converted" : "merged"}-${Date.now()}.docx`;
+        if (req.user?.id) {
+          await saveRecentFile(req.user.id, fileName, docxBuffer.length, "word", docxBuffer);
+        }
         res.setHeader(
           "Content-Type",
           "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -808,6 +862,9 @@ router.post("/merge", (req, res, next) => {
       try {
         const pptxBuffer = await convertPdfToPptPython(pdfBytes);
         const fileName = `${mode === "convert" ? "converted" : mode === "remove-pages" ? "edited" : "merged"}-${Date.now()}.pptx`;
+        if (req.user?.id) {
+          await saveRecentFile(req.user.id, fileName, pptxBuffer.length, "pptx", pptxBuffer);
+        }
         res.setHeader(
           "Content-Type",
           "application/vnd.openxmlformats-officedocument.presentationml.presentation"
@@ -821,6 +878,9 @@ router.post("/merge", (req, res, next) => {
     }
 
     const fileName = `${mode === "convert" ? "converted" : mode === "remove-pages" ? "edited" : "merged"}-${Date.now()}.pdf`;
+    if (req.user?.id) {
+      await saveRecentFile(req.user.id, fileName, pdfBytes.length, "pdf", Buffer.from(pdfBytes));
+    }
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
@@ -829,6 +889,46 @@ router.post("/merge", (req, res, next) => {
     return res.status(400).json({
       message: error?.message || "Failed to merge files."
     });
+  }
+});
+
+// GET /api/pdf/recent - Get recent files list (metadata only)
+router.get("/recent", authMiddleware, async (req, res) => {
+  try {
+    const files = await RecentFile.find({ userId: req.user.id })
+      .select("-data") // Exclude the binary data buffer
+      .sort({ createdAt: -1 }) // Newest first
+      .limit(20);
+
+    return res.json(files);
+  } catch (error) {
+    console.error("Error fetching recent files:", error);
+    return res.status(500).json({ message: "Failed to fetch recent files." });
+  }
+});
+
+// GET /api/pdf/recent/:id/download - Download a recent file's binary content
+router.get("/recent/:id/download", authMiddleware, async (req, res) => {
+  try {
+    const file = await RecentFile.findOne({ _id: req.params.id, userId: req.user.id });
+
+    if (!file) {
+      return res.status(404).json({ message: "File not found." });
+    }
+
+    let contentType = "application/pdf";
+    if (file.type === "word") {
+      contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    } else if (file.type === "pptx") {
+      contentType = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+    }
+
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Content-Disposition", `attachment; filename="${file.name}"`);
+    return res.send(file.data);
+  } catch (error) {
+    console.error("Error downloading recent file:", error);
+    return res.status(500).json({ message: "Failed to download recent file." });
   }
 });
 

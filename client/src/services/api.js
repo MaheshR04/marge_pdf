@@ -141,3 +141,30 @@ export async function createPdf(payload, token) {
 
   return { blob, fileName };
 }
+
+export async function getRecentFiles(token) {
+  const response = await request("/pdf/recent", {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+  return response.json();
+}
+
+export async function downloadRecentFile(id, token) {
+  const response = await request(`/pdf/recent/${id}/download`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+  
+  const contentDisposition = response.headers.get("content-disposition") || "";
+  const match = contentDisposition.match(/filename="?([^"]+)"?/i);
+  const fileName = match?.[1] || "downloaded-file";
+  const blob = await response.blob();
+  
+  return { blob, fileName };
+}
+

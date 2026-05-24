@@ -9,7 +9,7 @@ function isAllowedFile(file) {
   return ACCEPTED_EXTENSIONS.some((ext) => name.endsWith(ext));
 }
 
-export default function CreatePanel({ hideTabs }) {
+export default function CreatePanel({ hideTabs, onProcessSuccess }) {
   const { token, isAuthenticated } = useAuth();
   const [title, setTitle] = useState("");
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -103,6 +103,7 @@ export default function CreatePanel({ hideTabs }) {
          setDownloadUrl(blobUrl);
          setDownloadName(response.fileName || "document.pdf");
          setSuccess("PDF created successfully. Download is ready.");
+         if (onProcessSuccess) onProcessSuccess();
       } else {
          setError("Failed to create PDF.");
       }

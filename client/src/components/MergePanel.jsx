@@ -9,7 +9,7 @@ function isAllowedFile(file) {
   return ACCEPTED_EXTENSIONS.some((ext) => name.endsWith(ext));
 }
 
-export default function MergePanel({ initialMode, hideTabs }) {
+export default function MergePanel({ initialMode, hideTabs, onProcessSuccess }) {
   const { token, isAuthenticated } = useAuth();
   const [mode, setMode] = useState(() => {
     if (initialMode) return initialMode;
@@ -161,6 +161,7 @@ export default function MergePanel({ initialMode, hideTabs }) {
       setDownloadUrl(blobUrl);
       setDownloadName(fileName);
       setSuccess(`Files ${mode === "convert" ? "converted" : mode === "remove-pages" ? "processed" : "merged"} successfully. Download is ready.`);
+      if (onProcessSuccess) onProcessSuccess();
     } catch (err) {
       setError(err.message || "Failed to merge files.");
     } finally {
