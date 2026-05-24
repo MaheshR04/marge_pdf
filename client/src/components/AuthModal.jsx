@@ -3,7 +3,7 @@ import { useAuth } from "../context/AuthContext";
 
 const defaultState = { name: "", email: "", password: "" };
 
-export default function AuthModal({ mode, onClose }) {
+export default function AuthModal({ mode, onClose, onSwitchMode }) {
   const { login, register, loading } = useAuth();
   const [form, setForm] = useState(defaultState);
   const [error, setError] = useState("");
@@ -15,6 +15,7 @@ export default function AuthModal({ mode, onClose }) {
     if (isOpen) {
       setForm(defaultState);
       setError("");
+      setShowPassword(false);
     }
   }, [isOpen, mode]);
 
@@ -48,10 +49,15 @@ export default function AuthModal({ mode, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
       <div className="w-full max-w-md rounded-2xl border border-white/30 bg-white p-6 shadow-soft dark:bg-slate-800 dark:border-slate-700 dark:shadow-none">
-        <div className="mb-4 flex items-start justify-between">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-            {isRegister ? "Create your account" : "Welcome back"}
-          </h2>
+        <div className="mb-5 flex items-start justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+              {isRegister ? "Create your account" : "Welcome back"}
+            </h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              {isRegister ? "Join MergeMate for free." : "Sign in to continue."}
+            </p>
+          </div>
           <button
             onClick={onClose}
             className="rounded-lg px-2 py-1 text-slate-500 transition hover:bg-slate-100 dark:hover:bg-slate-700"
@@ -65,7 +71,7 @@ export default function AuthModal({ mode, onClose }) {
           {isRegister && (
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                Name
+                Full Name
               </label>
               <input
                 type="text"
@@ -73,14 +79,15 @@ export default function AuthModal({ mode, onClose }) {
                 value={form.name}
                 onChange={onChange}
                 required
-                className="w-full rounded-xl border border-slate-300 px-3 py-2 outline-none ring-brand-200 transition focus:ring dark:bg-slate-900 dark:border-slate-700 dark:text-white dark:ring-brand-900/20"
+                placeholder="John Doe"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 dark:bg-slate-900 dark:border-slate-700 dark:text-white"
               />
             </div>
           )}
 
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              Email
+              Email Address
             </label>
             <input
               type="email"
@@ -88,7 +95,8 @@ export default function AuthModal({ mode, onClose }) {
               value={form.email}
               onChange={onChange}
               required
-              className="w-full rounded-xl border border-slate-300 px-3 py-2 outline-none ring-brand-200 transition focus:ring dark:bg-slate-900 dark:border-slate-700 dark:text-white dark:ring-brand-900/20"
+              placeholder="you@example.com"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 dark:bg-slate-900 dark:border-slate-700 dark:text-white"
             />
           </div>
 
@@ -104,7 +112,8 @@ export default function AuthModal({ mode, onClose }) {
                 onChange={onChange}
                 required
                 minLength={6}
-                className="w-full rounded-xl border border-slate-300 px-3 py-2 pr-10 outline-none ring-brand-200 transition focus:ring dark:bg-slate-900 dark:border-slate-700 dark:text-white dark:ring-brand-900/20"
+                placeholder={isRegister ? "At least 6 characters" : "Your password"}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 pr-10 text-sm outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 dark:bg-slate-900 dark:border-slate-700 dark:text-white"
               />
               <button
                 type="button"
@@ -126,7 +135,7 @@ export default function AuthModal({ mode, onClose }) {
           </div>
 
           {error && (
-            <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
+            <p className="rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
               {error}
             </p>
           )}
@@ -134,17 +143,43 @@ export default function AuthModal({ mode, onClose }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-brand-600 px-4 py-2 font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-70"
+            className="w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-100 transition hover:bg-indigo-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 dark:shadow-none"
           >
             {loading
               ? "Please wait..."
               : isRegister
-                ? "Register"
+                ? "Create Account"
                 : "Login"}
           </button>
+
+          {/* Toggle between Login and Register */}
+          <p className="pt-1 text-center text-sm text-slate-500 dark:text-slate-400">
+            {isRegister ? (
+              <>
+                Already have an account?{" "}
+                <button
+                  type="button"
+                  onClick={() => onSwitchMode("login")}
+                  className="font-bold text-indigo-600 hover:underline dark:text-indigo-400"
+                >
+                  Login
+                </button>
+              </>
+            ) : (
+              <>
+                New here?{" "}
+                <button
+                  type="button"
+                  onClick={() => onSwitchMode("register")}
+                  className="font-bold text-indigo-600 hover:underline dark:text-indigo-400"
+                >
+                  Create an account
+                </button>
+              </>
+            )}
+          </p>
         </form>
       </div>
     </div>
   );
 }
-

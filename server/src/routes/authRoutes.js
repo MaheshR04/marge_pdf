@@ -10,7 +10,8 @@ const router = express.Router();
 function signToken(user) {
   return jwt.sign(
     { id: user._id.toString(), email: user.email, name: user.name },
-    process.env.JWT_SECRET
+    process.env.JWT_SECRET,
+    { expiresIn: "30d" }
   );
 }
 

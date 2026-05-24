@@ -9,11 +9,10 @@ import { updateProfile, updatePassword } from "../services/api";
 const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
   <button
     onClick={onClick}
-    className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-all ${
-      active
+    className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-all ${active
         ? "bg-indigo-50 text-indigo-600 shadow-sm dark:bg-indigo-900/30 dark:text-indigo-400"
         : "text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
-    }`}
+      }`}
   >
     <Icon className={`size-[18px] ${active ? "text-indigo-600" : "text-slate-400"}`} />
     {label}
@@ -144,7 +143,7 @@ const EyeSlashIcon = ({ className }) => (
 );
 
 export default function Dashboard() {
-  const { user, logout, isAuthenticated, token, updateUser } = useAuth();
+  const { user, logout, isAuthenticated, token, updateUser, sessionExpired, dismissSessionExpired } = useAuth();
   const { isDarkMode, toggleDarkMode } = useTheme();
   const [activeTab, setActiveTab] = useState(() => {
     const hash = window.location.hash;
@@ -194,9 +193,9 @@ export default function Dashboard() {
     }
     setIsUpdatingPassword(true);
     try {
-      await updatePassword({ 
-        currentPassword: passwordData.current, 
-        newPassword: passwordData.new 
+      await updatePassword({
+        currentPassword: passwordData.current,
+        newPassword: passwordData.new
       }, token);
       alert("Password updated successfully!");
       setIsPasswordModalOpen(false);
@@ -237,11 +236,42 @@ export default function Dashboard() {
 
   return (
     <div className="flex min-h-screen bg-slate-50 font-sans text-slate-900 transition-colors dark:bg-slate-900 dark:text-white">
-      <AuthModal mode={authMode} onClose={() => setAuthMode(null)} />
-      
+      <AuthModal mode={authMode} onClose={() => setAuthMode(null)} onSwitchMode={(m) => setAuthMode(m)} />
+
+      {/* Session Expired Modal */}
+      {sessionExpired && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/70 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-3xl bg-white p-8 text-center shadow-2xl dark:bg-slate-800 dark:border dark:border-slate-700">
+            <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-amber-50 dark:bg-amber-900/20">
+              <svg className="size-7 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
+            </div>
+            <h3 className="mb-2 text-lg font-bold text-slate-900 dark:text-white">Session Expired</h3>
+            <p className="mb-6 text-sm text-slate-500 dark:text-slate-400">
+              Your session has expired for security. Please log in again to continue.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { dismissSessionExpired(); logout(); }}
+                className="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-700"
+              >
+                Sign Out
+              </button>
+              <button
+                onClick={() => { dismissSessionExpired(); setAuthMode("login"); }}
+                className="flex-1 rounded-xl bg-indigo-600 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-100 hover:bg-indigo-700 dark:shadow-none"
+              >
+                Log In Again
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
@@ -256,7 +286,7 @@ export default function Dashboard() {
             </div>
             <span className="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white">PDF Tools</span>
           </div>
-          <button 
+          <button
             onClick={() => setIsSidebarOpen(false)}
             className="rounded-lg p-1 text-slate-500 hover:bg-slate-100 lg:hidden dark:hover:bg-slate-700"
           >
@@ -281,22 +311,22 @@ export default function Dashboard() {
       <main className="flex-1 p-4 lg:p-10">
         {/* Mobile Top Bar */}
         <div className="mb-6 flex items-center justify-between lg:hidden">
-           <button 
-             onClick={() => setIsSidebarOpen(true)}
-             className="rounded-xl border border-slate-200 bg-white p-2 text-slate-600 shadow-sm dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
-           >
-             <MenuIcon className="size-6" />
-           </button>
-           <div className="flex size-9 items-center justify-center rounded-xl bg-indigo-600 text-white font-bold text-lg shadow-indigo-200 shadow-lg">
-             PF
-           </div>
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="rounded-xl border border-slate-200 bg-white p-2 text-slate-600 shadow-sm dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
+          >
+            <MenuIcon className="size-6" />
+          </button>
+          <div className="flex size-9 items-center justify-center rounded-xl bg-indigo-600 text-white font-bold text-lg shadow-indigo-200 shadow-lg">
+            PF
+          </div>
         </div>
 
         {/* Header */}
         <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             {activeTab !== "dashboard" && (
-              <button 
+              <button
                 onClick={() => { setActiveTab("dashboard"); window.location.hash = "#dashboard"; }}
                 className="flex size-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700"
               >
@@ -307,36 +337,44 @@ export default function Dashboard() {
             )}
             <div>
               <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-                {activeTab === "merge" ? "Merge PDF" : 
-                 activeTab === "convert" ? "Convert PDF" : 
-                 activeTab === "remove" ? "Remove Page" : 
-                 activeTab === "create" ? "Create PDF" : 
-                 activeTab === "recent" ? "Recent Files" :
-                 activeTab === "settings" ? "Settings" : "Dashboard"}
+                {activeTab === "merge" ? "Merge PDF" :
+                  activeTab === "convert" ? "Convert PDF" :
+                    activeTab === "remove" ? "Remove Page" :
+                      activeTab === "create" ? "Create PDF" :
+                        activeTab === "recent" ? "Recent Files" :
+                          activeTab === "settings" ? "Settings" : "Dashboard"}
               </h1>
               <p className="text-sm text-slate-500 dark:text-slate-400">Welcome back! Your all-in-one PDF solution.</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <button 
+            <button
               onClick={toggleDarkMode}
               className="flex size-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-all hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
             >
               {isDarkMode ? <SunIcon className="size-5" /> : <MoonIcon className="size-5" />}
             </button>
             {isAuthenticated ? (
-              <div className="relative">
-                <button className="flex size-10 items-center justify-center rounded-full bg-indigo-600 text-sm font-bold text-white shadow-md">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center rounded-full bg-indigo-600 text-sm font-bold text-white shadow-md">
                   {user?.name?.charAt(0).toUpperCase() || "U"}
-                </button>
+                </div>
               </div>
             ) : (
-              <button 
-                onClick={() => setAuthMode("login")}
-                className="rounded-xl bg-indigo-600 px-5 py-2 text-sm font-bold text-white transition-all hover:bg-indigo-700"
-              >
-                Login
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setAuthMode("login")}
+                  className="rounded-xl border border-indigo-200 bg-white px-4 py-2 text-sm font-bold text-indigo-600 transition-all hover:bg-indigo-50 dark:bg-slate-800 dark:border-slate-600 dark:text-indigo-400 dark:hover:bg-slate-700"
+                >
+                  Login
+                </button>
+                <button
+                  onClick={() => setAuthMode("register")}
+                  className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white transition-all hover:bg-indigo-700 shadow-md shadow-indigo-100"
+                >
+                  Sign Up
+                </button>
+              </div>
             )}
           </div>
         </header>
@@ -350,49 +388,49 @@ export default function Dashboard() {
                 <h2 className="mb-3 text-2xl font-extrabold leading-tight sm:text-4xl">All-in-One PDF Tools</h2>
                 <p className="mb-6 text-sm leading-relaxed opacity-90 sm:text-base">Merge, convert, and organize your PDF files with ease. Fast, secure, and works in your browser.</p>
               </div>
-              
+
               <div className="absolute -bottom-8 -right-8 size-64 rotate-12 opacity-10">
-                 <FileIcon className="size-full" />
+                <FileIcon className="size-full" />
               </div>
               <div className="absolute right-20 top-1/2 -translate-y-1/2">
-                 <div className="relative size-32 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20">
-                    <FileIcon className="size-16 text-white" />
-                    <div className="absolute -right-2 -top-2 rounded-lg bg-white px-2 py-1 text-[10px] font-bold text-indigo-600 shadow-sm">PDF</div>
-                 </div>
+                <div className="relative size-32 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20">
+                  <FileIcon className="size-16 text-white" />
+                  <div className="absolute -right-2 -top-2 rounded-lg bg-white px-2 py-1 text-[10px] font-bold text-indigo-600 shadow-sm">PDF</div>
+                </div>
               </div>
             </section>
 
             {/* Tool Cards */}
             <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-              <ToolCard 
-                icon={CreateIcon} 
-                title="Create PDF" 
-                description="Write or paste text to generate a PDF." 
-                buttonText="Get Started" 
+              <ToolCard
+                icon={CreateIcon}
+                title="Create PDF"
+                description="Write or paste text to generate a PDF."
+                buttonText="Get Started"
                 buttonColor="bg-amber-500"
                 onClick={() => handleToolClick("create")}
               />
-              <ToolCard 
-                icon={MergeIcon} 
-                title="Merge PDF" 
-                description="Combine multiple PDF files into a single document." 
-                buttonText="Get Started" 
+              <ToolCard
+                icon={MergeIcon}
+                title="Merge PDF"
+                description="Combine multiple PDF files into a single document."
+                buttonText="Get Started"
                 buttonColor="bg-indigo-600"
                 onClick={() => handleToolClick("merge")}
               />
-              <ToolCard 
-                icon={ConvertIcon} 
-                title="Convert" 
-                description="Convert PDF to Word, Excel, PPT, and more." 
-                buttonText="Get Started" 
+              <ToolCard
+                icon={ConvertIcon}
+                title="Convert"
+                description="Convert PDF to Word, Excel, PPT, and more."
+                buttonText="Get Started"
                 buttonColor="bg-emerald-500"
                 onClick={() => handleToolClick("convert")}
               />
-              <ToolCard 
-                icon={TrashIcon} 
-                title="Remove Page" 
-                description="Remove unwanted pages from your PDF." 
-                buttonText="Get Started" 
+              <ToolCard
+                icon={TrashIcon}
+                title="Remove Page"
+                description="Remove unwanted pages from your PDF."
+                buttonText="Get Started"
                 buttonColor="bg-rose-500"
                 onClick={() => handleToolClick("remove")}
               />
@@ -463,11 +501,11 @@ export default function Dashboard() {
                   <div>
                     <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">Display Name</label>
                     <div className="relative">
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={newName}
                         onChange={(e) => setNewName(e.target.value)}
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm transition-all focus:border-indigo-500 focus:bg-white focus:outline-none dark:bg-slate-900 dark:border-slate-700 dark:text-white dark:focus:border-indigo-400" 
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm transition-all focus:border-indigo-500 focus:bg-white focus:outline-none dark:bg-slate-900 dark:border-slate-700 dark:text-white dark:focus:border-indigo-400"
                         placeholder="Your Name"
                       />
                     </div>
@@ -475,11 +513,11 @@ export default function Dashboard() {
                   </div>
                   <div>
                     <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">Email Address</label>
-                    <input 
-                      type="email" 
-                      defaultValue={user?.email} 
-                      disabled 
-                      className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-500 cursor-not-allowed dark:bg-slate-900/50 dark:border-slate-700 dark:text-slate-500" 
+                    <input
+                      type="email"
+                      defaultValue={user?.email}
+                      disabled
+                      className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-500 cursor-not-allowed dark:bg-slate-900/50 dark:border-slate-700 dark:text-slate-500"
                     />
                     <p className="mt-1.5 text-[11px] text-slate-400">Email cannot be changed as it is linked to your account.</p>
                   </div>
@@ -491,7 +529,7 @@ export default function Dashboard() {
                       {message.text}
                     </div>
                   )}
-                  <button 
+                  <button
                     onClick={handleUpdateProfile}
                     disabled={isUpdatingProfile || newName === user?.name}
                     className="w-full rounded-xl bg-indigo-600 px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-indigo-100 transition-all hover:bg-indigo-700 hover:shadow-indigo-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed dark:shadow-none"
@@ -512,7 +550,7 @@ export default function Dashboard() {
                   <h3 className="text-lg font-bold text-slate-900 dark:text-white">Security</h3>
                 </div>
                 <p className="mb-6 text-sm text-slate-500 dark:text-slate-400">Keep your account secure by managing your password and sessions.</p>
-                <button 
+                <button
                   onClick={() => setIsPasswordModalOpen(true)}
                   className="w-full rounded-xl border border-slate-200 bg-white py-2.5 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50 hover:border-slate-300 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700"
                 >
@@ -529,7 +567,7 @@ export default function Dashboard() {
                   <h3 className="text-lg font-bold text-slate-900 dark:text-white">Account Session</h3>
                 </div>
                 <p className="mb-6 text-sm text-slate-500 dark:text-slate-400">Ready to leave? Make sure you have saved all your work before logging out.</p>
-                <button 
+                <button
                   onClick={logout}
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-rose-50 py-3 text-sm font-bold text-rose-600 transition-all hover:bg-rose-600 hover:text-white active:scale-[0.98] dark:bg-rose-900/20 dark:hover:bg-rose-600"
                 >
@@ -545,9 +583,9 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="rounded-[32px] bg-white p-8 shadow-soft dark:bg-slate-800 dark:shadow-none dark:border dark:border-slate-700">
-            <MergePanel 
-              initialMode={activeTab === "remove" ? "remove-pages" : activeTab} 
-              hideTabs={true} 
+            <MergePanel
+              initialMode={activeTab === "remove" ? "remove-pages" : activeTab}
+              hideTabs={true}
             />
           </div>
         )}
@@ -559,26 +597,26 @@ export default function Dashboard() {
           <div className="w-full max-w-md rounded-[32px] bg-white p-8 shadow-2xl dark:bg-slate-800 dark:border dark:border-slate-700">
             <div className="mb-6 flex items-center justify-between">
               <h3 className="text-xl font-bold text-slate-900 dark:text-white">Update Password</h3>
-              <button 
+              <button
                 onClick={() => setIsPasswordModalOpen(false)}
                 className="rounded-lg p-1 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700"
               >
                 <XMarkIcon className="size-6" />
               </button>
             </div>
-            
+
             <form onSubmit={handleUpdatePassword} className="space-y-4">
               <div>
                 <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">Current Password</label>
                 <div className="relative">
-                  <input 
-                    type={showPasswords.current ? "text" : "password"} 
+                  <input
+                    type={showPasswords.current ? "text" : "password"}
                     required
                     value={passwordData.current}
                     onChange={(e) => setPasswordData({ ...passwordData, current: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-11 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none dark:bg-slate-900 dark:border-slate-700 dark:text-white" 
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-11 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none dark:bg-slate-900 dark:border-slate-700 dark:text-white"
                   />
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
@@ -590,14 +628,14 @@ export default function Dashboard() {
               <div>
                 <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">New Password</label>
                 <div className="relative">
-                  <input 
-                    type={showPasswords.new ? "text" : "password"} 
+                  <input
+                    type={showPasswords.new ? "text" : "password"}
                     required
                     value={passwordData.new}
                     onChange={(e) => setPasswordData({ ...passwordData, new: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-11 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none dark:bg-slate-900 dark:border-slate-700 dark:text-white" 
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-11 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none dark:bg-slate-900 dark:border-slate-700 dark:text-white"
                   />
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
@@ -609,14 +647,14 @@ export default function Dashboard() {
               <div>
                 <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">Confirm New Password</label>
                 <div className="relative">
-                  <input 
-                    type={showPasswords.confirm ? "text" : "password"} 
+                  <input
+                    type={showPasswords.confirm ? "text" : "password"}
                     required
                     value={passwordData.confirm}
                     onChange={(e) => setPasswordData({ ...passwordData, confirm: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-11 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none dark:bg-slate-900 dark:border-slate-700 dark:text-white" 
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-11 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none dark:bg-slate-900 dark:border-slate-700 dark:text-white"
                   />
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
@@ -626,14 +664,14 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="pt-4 flex gap-3">
-                <button 
+                <button
                   type="button"
                   onClick={() => setIsPasswordModalOpen(false)}
                   className="flex-1 rounded-xl border border-slate-200 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-700"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   type="submit"
                   disabled={isUpdatingPassword}
                   className="flex-1 rounded-xl bg-indigo-600 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-100 hover:bg-indigo-700 disabled:opacity-50 dark:shadow-none"

@@ -10,10 +10,6 @@ export async function request(path, options = {}) {
   });
 
   if (!response.ok) {
-    if (response.status === 401) {
-      window.dispatchEvent(new CustomEvent("app-unauthorized"));
-    }
-
     let message = "Something went wrong.";
     try {
       const data = await response.json();
@@ -21,7 +17,19 @@ export async function request(path, options = {}) {
     } catch (error) {
       message = response.statusText || message;
     }
-    throw new Error(message);
+
+    if (response.status === 401) {
+      // Fire session-expired event with the server message
+      window.dispatchEvent(new CustomEvent("app-unauthorized", {
+        detail: { message }
+      }));
+    }
+
+    throw new Error(
+      response.status === 401
+        ? "Your session has expired. Please log in again."
+        : message
+    );
   }
 
   return response;

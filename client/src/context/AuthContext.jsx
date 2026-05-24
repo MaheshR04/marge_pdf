@@ -15,6 +15,8 @@ export function AuthProvider({ children }) {
     }
   });
   const [loading, setLoading] = useState(false);
+  // When true, the Dashboard shows a "session expired — please login again" modal
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   const persistAuth = (payload) => {
     setToken(payload.token);
@@ -28,6 +30,7 @@ export function AuthProvider({ children }) {
     try {
       const data = await loginUser(credentials);
       persistAuth(data);
+      setSessionExpired(false);
       return data;
     } finally {
       setLoading(false);
@@ -39,6 +42,7 @@ export function AuthProvider({ children }) {
     try {
       const data = await registerUser(formData);
       persistAuth(data);
+      setSessionExpired(false);
       return data;
     } finally {
       setLoading(false);
@@ -48,13 +52,25 @@ export function AuthProvider({ children }) {
   const logout = () => {
     setToken("");
     setUser(null);
+    setSessionExpired(false);
     localStorage.removeItem("token");
     localStorage.removeItem("user");
   };
 
+  // Called after profile update — API returns { user, token, message }
+  const updateUser = (data) => {
+    const updatedUser = data.user || data;
+    const updatedToken = data.token || token;
+    setUser(updatedUser);
+    setToken(updatedToken);
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+    localStorage.setItem("token", updatedToken);
+  };
+
   useEffect(() => {
     const handleUnauthorized = () => {
-      logout();
+      // Don't immediately logout — show a re-login prompt instead
+      setSessionExpired(true);
     };
 
     window.addEventListener("app-unauthorized", handleUnauthorized);
@@ -66,13 +82,15 @@ export function AuthProvider({ children }) {
       token,
       user,
       loading,
-      isAuthenticated: Boolean(token),
+      sessionExpired,
+      isAuthenticated: Boolean(token) && !sessionExpired,
       login,
       register,
       logout,
-      updateUser: persistAuth
+      updateUser,
+      dismissSessionExpired: () => setSessionExpired(false),
     }),
-    [token, user, loading]
+    [token, user, loading, sessionExpired]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
