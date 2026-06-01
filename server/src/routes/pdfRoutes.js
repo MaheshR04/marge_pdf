@@ -981,4 +981,20 @@ router.get("/recent/:id/download", authMiddleware, async (req, res) => {
   }
 });
 
+// DELETE /api/pdf/recent/:id - Delete a recent file
+router.delete("/recent/:id", authMiddleware, async (req, res) => {
+  try {
+    const file = await RecentFile.findOneAndDelete({ _id: req.params.id, userId: req.user.id });
+
+    if (!file) {
+      return res.status(404).json({ message: "File not found." });
+    }
+
+    return res.json({ message: "File deleted successfully." });
+  } catch (error) {
+    console.error("Error deleting recent file:", error);
+    return res.status(500).json({ message: "Failed to delete recent file." });
+  }
+});
+
 export default router;

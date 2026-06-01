@@ -4,7 +4,7 @@ import { useTheme } from "../context/ThemeContext";
 import MergePanel from "./MergePanel";
 import CreatePanel from "./CreatePanel";
 import AuthModal from "./AuthModal";
-import { updateProfile, updatePassword, getRecentFiles, downloadRecentFile } from "../services/api";
+import { updateProfile, updatePassword, getRecentFiles, downloadRecentFile, deleteRecentFile } from "../services/api";
 
 const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
   <button
@@ -277,6 +277,18 @@ export default function Dashboard() {
     }
   };
 
+  const handleDeleteRecentFile = async (id, fileName) => {
+    if (!window.confirm(`Are you sure you want to delete "${fileName}"? This action cannot be undone.`)) {
+      return;
+    }
+    try {
+      await deleteRecentFile(id, token);
+      fetchRecentFiles();
+    } catch (err) {
+      alert("Failed to delete file: " + err.message);
+    }
+  };
+
   const formatBytes = (bytes) => {
     if (bytes === 0 || !bytes) return "0 Bytes";
     const k = 1024;
@@ -535,15 +547,24 @@ export default function Dashboard() {
                           <p className="text-[12px] text-slate-400 dark:text-slate-500">{formatBytes(file.size)} • {formatRelativeTime(file.createdAt)}</p>
                         </div>
                       </div>
-                      <button 
-                        onClick={() => handleDownloadRecentFile(file._id, file.name)}
-                        className="rounded-lg p-2 text-slate-400 transition-all hover:bg-slate-100 hover:text-indigo-600 dark:hover:bg-slate-700"
-                        title="Download file"
-                      >
-                        <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button 
+                          onClick={() => handleDownloadRecentFile(file._id, file.name)}
+                          className="rounded-lg p-2 text-slate-400 transition-all hover:bg-slate-100 hover:text-indigo-600 dark:hover:bg-slate-700"
+                          title="Download file"
+                        >
+                          <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteRecentFile(file._id, file.name)}
+                          className="rounded-lg p-2 text-slate-400 transition-all hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30 dark:hover:text-rose-400"
+                          title="Delete file"
+                        >
+                          <TrashIcon className="size-5" />
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}
@@ -572,12 +593,21 @@ export default function Dashboard() {
                         <p className="text-sm text-slate-400 dark:text-slate-500">{formatBytes(file.size)} • {formatRelativeTime(file.createdAt)}</p>
                       </div>
                     </div>
-                    <button 
-                      onClick={() => handleDownloadRecentFile(file._id, file.name)}
-                      className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
-                    >
-                      Download
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => handleDownloadRecentFile(file._id, file.name)}
+                        className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
+                      >
+                        Download
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteRecentFile(file._id, file.name)}
+                        className="flex size-9 items-center justify-center rounded-xl bg-rose-50 text-rose-600 transition-all hover:bg-rose-600 hover:text-white dark:bg-rose-950/20 dark:hover:bg-rose-600"
+                        title="Delete file"
+                      >
+                        <TrashIcon className="size-4.5" />
+                      </button>
+                    </div>
                   </div>
                 ))
               )}

@@ -171,3 +171,13 @@ export async function downloadRecentFile(id, token) {
   return { blob, fileName };
 }
 
+export async function deleteRecentFile(id, token) {
+  const response = await request(`/pdf/recent/${id}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+  return response.json();
+}
+
