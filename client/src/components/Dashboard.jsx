@@ -142,6 +142,24 @@ const EyeSlashIcon = ({ className }) => (
   </svg>
 );
 
+const CloudIcon = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+  </svg>
+);
+
+const MailIcon = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+  </svg>
+);
+
+const KeyIcon = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m-9 5a3 3 0 11-6 0 3 3 0 016 0zm6.3-2.7a16 16 0 011.7-2l2.3-2.3a2.224 2.224 0 013.2 0 2.224 2.224 0 010 3.2L23 9.3a16 16 0 01-2 1.7M14 14l-1.5-1.5" />
+  </svg>
+);
+
 export default function Dashboard() {
   const { user, logout, isAuthenticated, token, updateUser, sessionExpired, dismissSessionExpired } = useAuth();
   const { isDarkMode, toggleDarkMode } = useTheme();
@@ -566,92 +584,253 @@ export default function Dashboard() {
             </div>
           </div>
         ) : activeTab === "settings" ? (
-          <div className="max-w-4xl space-y-6">
-            <div className="rounded-[32px] bg-white p-8 shadow-soft dark:bg-slate-800 dark:shadow-none dark:border dark:border-slate-700">
-              <div className="mb-8 flex items-center gap-4">
-                <div className="flex size-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400">
-                  <UserCircleIcon className="size-6" />
+          <div className="max-w-5xl space-y-8 animate-fade-up">
+            {/* Top Cards Grid */}
+            <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+              
+              {/* Left Column: Profile Card & Quick Info */}
+              <div className="space-y-6 lg:col-span-1">
+                {/* Profile Overview Card */}
+                <div className="relative overflow-hidden rounded-[32px] bg-white p-6 shadow-soft transition-all hover:shadow-lg dark:bg-slate-800 dark:border dark:border-slate-700">
+                  {/* Decorative background circle */}
+                  <div className="absolute -right-16 -top-16 size-40 rounded-full bg-indigo-500/10 blur-xl dark:bg-indigo-400/5" />
+                  
+                  <div className="flex flex-col items-center text-center">
+                    {/* Premium Avatar */}
+                    <div className="relative mb-4">
+                      <div className="flex size-24 items-center justify-center rounded-full bg-gradient-to-tr from-indigo-500 via-indigo-600 to-purple-600 text-white font-extrabold text-3xl shadow-xl shadow-indigo-200 dark:shadow-none border-4 border-white dark:border-slate-800">
+                        {user?.name?.charAt(0).toUpperCase() || "U"}
+                      </div>
+                      <span className="absolute bottom-1 right-1 flex h-4 w-4">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-white dark:border-slate-800"></span>
+                      </span>
+                    </div>
+                    
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white truncate max-w-full">
+                      {user?.name || "Premium User"}
+                    </h3>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mb-4 truncate max-w-full">
+                      {user?.email || "user@example.com"}
+                    </p>
+                    
+                    {/* Status Badge */}
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400">
+                      <CrownIcon className="size-3.5" />
+                      Pro Account
+                    </span>
+                  </div>
+                  
+                  {/* Mini Stats divider */}
+                  <div className="my-6 border-t border-slate-100 dark:border-slate-700" />
+                  
+                  {/* Simple storage indicator */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1.5 font-medium text-slate-500 dark:text-slate-400">
+                        <CloudIcon className="size-4 text-indigo-500" />
+                        Storage Used
+                      </span>
+                      <span className="font-bold text-slate-700 dark:text-slate-300">12.4 MB of 100 MB</span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
+                      <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-600" style={{ width: '12.4%' }} />
+                    </div>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500">Your cloud space for processed PDF files.</p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">Profile Settings</h2>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">Manage your personal information and how others see you.</p>
+                
+                {/* Visual Settings Navigation Helper */}
+                <div className="hidden lg:block rounded-[24px] bg-white p-4 shadow-soft dark:bg-slate-800 dark:border dark:border-slate-700">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-3 px-2">Settings Quick Jump</span>
+                  <div className="space-y-1">
+                    <a href="#profile-settings" className="flex items-center gap-2.5 rounded-xl bg-slate-50 px-3 py-2 text-xs font-bold text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400">
+                      <UserCircleIcon className="size-4" />
+                      Profile Settings
+                    </a>
+                    <a href="#security-settings" className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-700/50">
+                      <ShieldIcon className="size-4" />
+                      Security Options
+                    </a>
+                    <a href="#session-settings" className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-700/50">
+                      <LogOutIcon className="size-4" />
+                      Account Session
+                    </a>
+                  </div>
                 </div>
               </div>
-
-              <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-                <div className="space-y-4">
-                  <div>
-                    <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">Display Name</label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={newName}
-                        onChange={(e) => setNewName(e.target.value)}
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm transition-all focus:border-indigo-500 focus:bg-white focus:outline-none dark:bg-slate-900 dark:border-slate-700 dark:text-white dark:focus:border-indigo-400"
-                        placeholder="Your Name"
-                      />
+              
+              {/* Right Column: Profile Form Settings (Takes 2 grid cols) */}
+              <div id="profile-settings" className="lg:col-span-2 space-y-6">
+                <div className="rounded-[32px] bg-white p-8 shadow-soft dark:bg-slate-800 dark:border dark:border-slate-700 relative overflow-hidden">
+                  <div className="mb-6 flex items-center gap-4">
+                    <div className="flex size-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400">
+                      <UserCircleIcon className="size-6" />
                     </div>
-                    <p className="mt-1.5 text-[11px] text-slate-400">This name will be displayed in your profile and communications.</p>
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">Email Address</label>
-                    <input
-                      type="email"
-                      defaultValue={user?.email}
-                      disabled
-                      className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-500 cursor-not-allowed dark:bg-slate-900/50 dark:border-slate-700 dark:text-slate-500"
-                    />
-                    <p className="mt-1.5 text-[11px] text-slate-400">Email cannot be changed as it is linked to your account.</p>
-                  </div>
-                </div>
-
-                <div className="flex flex-col justify-end pb-1">
-                  {message.text && (
-                    <div className={`mb-4 rounded-lg p-3 text-xs font-medium ${message.type === 'success' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20' : 'bg-rose-50 text-rose-600 dark:bg-rose-900/20'}`}>
-                      {message.text}
+                    <div>
+                      <h2 className="text-xl font-bold text-slate-900 dark:text-white">Profile Details</h2>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">Update your general account details and display configurations.</p>
                     </div>
-                  )}
-                  <button
-                    onClick={handleUpdateProfile}
-                    disabled={isUpdatingProfile || newName === user?.name}
-                    className="w-full rounded-xl bg-indigo-600 px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-indigo-100 transition-all hover:bg-indigo-700 hover:shadow-indigo-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed dark:shadow-none"
-                  >
-                    {isUpdatingProfile ? "Updating..." : "Save Profile Changes"}
-                  </button>
+                  </div>
+                  
+                  <div className="space-y-5">
+                    {/* Display Name Input */}
+                    <div>
+                      <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">Display Name</label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                          <UserCircleIcon className="size-5" />
+                        </span>
+                        <input
+                          type="text"
+                          value={newName}
+                          onChange={(e) => setNewName(e.target.value)}
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-11 pr-4 py-3 text-sm font-medium transition-all focus:border-indigo-500 focus:bg-white focus:outline-none dark:bg-slate-900 dark:border-slate-700 dark:text-white dark:focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10"
+                          placeholder="Your Name"
+                        />
+                      </div>
+                      <p className="mt-1.5 text-[11px] text-slate-400 dark:text-slate-500">This name will be displayed in your profile and communications.</p>
+                    </div>
+                    
+                    {/* Email Address Input (Disabled) */}
+                    <div>
+                      <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">Email Address</label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                          <MailIcon className="size-5" />
+                        </span>
+                        <input
+                          type="email"
+                          defaultValue={user?.email}
+                          disabled
+                          className="w-full rounded-xl border border-slate-200 bg-slate-100 pl-11 pr-4 py-3 text-sm font-medium text-slate-500 cursor-not-allowed dark:bg-slate-900/50 dark:border-slate-700 dark:text-slate-500"
+                        />
+                      </div>
+                      <p className="mt-1.5 text-[11px] text-slate-400 dark:text-slate-500">Email cannot be changed as it is linked to your account.</p>
+                    </div>
+                    
+                    {/* UI Preferences Toggles */}
+                    <div className="pt-2">
+                      <span className="mb-3 block text-sm font-bold text-slate-700 dark:text-slate-300">Application Preferences</span>
+                      
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between rounded-xl bg-slate-50 p-3.5 dark:bg-slate-900/30 border border-slate-100/50 dark:border-slate-800">
+                          <div className="pr-4">
+                            <span className="block text-xs font-bold text-slate-800 dark:text-slate-200">Email notifications</span>
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500">Receive alert when processed PDFs are ready.</span>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" defaultChecked className="sr-only peer" />
+                            <div className="w-9 h-5 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-slate-600 peer-checked:bg-indigo-600"></div>
+                          </label>
+                        </div>
+                        
+                        <div className="flex items-center justify-between rounded-xl bg-slate-50 p-3.5 dark:bg-slate-900/30 border border-slate-100/50 dark:border-slate-800">
+                          <div className="pr-4">
+                            <span className="block text-xs font-bold text-slate-800 dark:text-slate-200">Auto-clear history</span>
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500">Automatically remove PDFs from history after 7 days.</span>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" className="sr-only peer" />
+                            <div className="w-9 h-5 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-slate-600 peer-checked:bg-indigo-600"></div>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Action Section */}
+                    <div className="pt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div className="flex-1">
+                        {message.text && (
+                          <div className={`rounded-xl p-3 flex items-center gap-2 text-xs font-semibold ${message.type === 'success' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-rose-50 text-rose-600 dark:bg-rose-900/20 dark:text-rose-400'}`}>
+                            {message.type === 'success' ? (
+                              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0" />
+                              </svg>
+                            ) : (
+                              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0" />
+                              </svg>
+                            )}
+                            {message.text}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <button
+                        onClick={handleUpdateProfile}
+                        disabled={isUpdatingProfile || newName === user?.name || !newName.trim()}
+                        className="flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-200 transition-all hover:bg-indigo-700 hover:shadow-indigo-300 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:shadow-none dark:shadow-none"
+                      >
+                        {isUpdatingProfile ? (
+                          <>
+                            <svg className="animate-spin -ml-1 mr-1 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                            </svg>
+                            Saving Profile...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                            </svg>
+                            Save Changes
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-
+            
+            {/* Bottom Row Cards: Security & Logout */}
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               {/* Account Security Card */}
-              <div className="rounded-[32px] bg-white p-8 shadow-soft dark:bg-slate-800 dark:shadow-none dark:border dark:border-slate-700">
-                <div className="mb-6 flex items-center gap-4">
-                  <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
-                    <ShieldIcon className="size-5" />
+              <div id="security-settings" className="group rounded-[32px] bg-white p-8 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:bg-slate-800 dark:border dark:border-slate-700">
+                <div className="mb-6 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="flex size-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 transition-colors group-hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:group-hover:bg-emerald-900/50">
+                      <ShieldIcon className="size-5.5" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900 dark:text-white">Security Settings</h3>
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500">Manage security details & authentication</p>
+                    </div>
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">Security</h3>
                 </div>
-                <p className="mb-6 text-sm text-slate-500 dark:text-slate-400">Keep your account secure by managing your password and sessions.</p>
+                <p className="mb-8 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+                  Ensure your account remains safe and protected by updating your account credentials or configuring two-factor security parameters.
+                </p>
                 <button
                   onClick={() => setIsPasswordModalOpen(true)}
-                  className="w-full rounded-xl border border-slate-200 bg-white py-2.5 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50 hover:border-slate-300 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-3 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50 hover:border-slate-300 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700"
                 >
+                  <KeyIcon className="size-4" />
                   Update Password
                 </button>
               </div>
 
               {/* Danger Zone Card */}
-              <div className="rounded-[32px] bg-white p-8 shadow-soft dark:bg-slate-800 dark:shadow-none dark:border dark:border-slate-700">
-                <div className="mb-6 flex items-center gap-4">
-                  <div className="flex size-10 items-center justify-center rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400">
-                    <LogOutIcon className="size-5" />
+              <div id="session-settings" className="group rounded-[32px] bg-white p-8 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:bg-slate-800 dark:border dark:border-slate-700">
+                <div className="mb-6 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="flex size-11 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 transition-colors group-hover:bg-rose-100 dark:bg-rose-900/30 dark:text-rose-400 dark:group-hover:bg-rose-900/50">
+                      <LogOutIcon className="size-5.5" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900 dark:text-white">Account Session</h3>
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500">Manage your active sign-in status</p>
+                    </div>
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">Account Session</h3>
                 </div>
-                <p className="mb-6 text-sm text-slate-500 dark:text-slate-400">Ready to leave? Make sure you have saved all your work before logging out.</p>
+                <p className="mb-8 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+                  Ready to sign out? Make sure you have completed and downloaded all active PDF tasks. Your work session will be saved locally.
+                </p>
                 <button
                   onClick={logout}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-rose-50 py-3 text-sm font-bold text-rose-600 transition-all hover:bg-rose-600 hover:text-white active:scale-[0.98] dark:bg-rose-900/20 dark:hover:bg-rose-600"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-rose-50/50 py-3 text-sm font-bold text-rose-600 border border-rose-100/30 hover:border-rose-200 transition-all hover:bg-rose-600 hover:text-white dark:bg-rose-950/20 dark:border-rose-900/20 dark:hover:bg-rose-600"
                 >
                   <LogOutIcon className="size-4" />
                   Logout from Account
