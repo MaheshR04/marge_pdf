@@ -25,11 +25,15 @@ The project is deployed with:
 - Backend file handling with memory uploads
 - CORS configured for the deployed Vercel frontend
 
-## Important Note
+## High-Fidelity Word-to-PDF Conversion
 
-PDF output is the best option for preserving PDF pages.
+MergeMate implements a high-fidelity, cross-platform Word (.docx) to PDF conversion engine:
+- **On Windows (Local Dev):** Automatically utilizes Microsoft Word COM automation if MS Word is installed, or headless LibreOffice as a fallback. Processes run with a strict 15-second timeout to prevent COM dialog blocks or hangs.
+- **On Linux/Docker (Production):** Utilizes headless LibreOffice (`soffice` / `libreoffice`) to convert documents, maintaining all layouts, tables, custom symbols, formatting, and images perfectly.
+- **Fail-Safe Fallback:** If both primary engines are unavailable, it falls back to extracting raw text via `mammoth` and rendering a clean, readable text-based PDF.
 
-Word output can include extracted text from Word and text-based PDF files, plus uploaded images. Scanned/image-only PDFs need OCR for editable text extraction.
+### Production Environment Requirements
+For production deployments (such as Render), the system runs via Docker (defined in the `Dockerfile`) which automatically provisions headless `libreoffice` to enable seamless high-fidelity conversions without Microsoft Word.
 
 ## Tech Stack
 

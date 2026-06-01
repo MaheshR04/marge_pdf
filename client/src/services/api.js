@@ -18,7 +18,10 @@ export async function request(path, options = {}) {
       message = response.statusText || message;
     }
 
-    if (response.status === 401) {
+    // Only treat 401 as session expired if the message indicates token validation failed
+    const isSessionExpired = response.status === 401 && message.startsWith("Unauthorized");
+
+    if (isSessionExpired) {
       // Fire session-expired event with the server message
       window.dispatchEvent(new CustomEvent("app-unauthorized", {
         detail: { message }
@@ -26,7 +29,7 @@ export async function request(path, options = {}) {
     }
 
     throw new Error(
-      response.status === 401
+      isSessionExpired
         ? "Your session has expired. Please log in again."
         : message
     );

@@ -1,6 +1,6 @@
 FROM node:22-slim
 
-# Install Python, pip, and required system libraries for pdf2docx (OpenCV dependencies)
+# Install Python, pip, required system libraries, and LibreOffice for high-quality docx-to-pdf conversion
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     libgl1-mesa-glx \
     libglib2.0-0 \
     build-essential \
+    libreoffice \
     && rm -rf /var/lib/apt/lists/*
 
 # Set up working directory

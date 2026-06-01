@@ -319,11 +319,11 @@ async function convertInputToPdfBuffer(file) {
 
   if (isDocxFile(file)) {
     try {
-      // Try high-quality PowerShell/Word conversion first
-      const pdfBuffer = await convertWordToPdfPs(file.buffer);
+      // Try high-quality cross-platform conversion first
+      const pdfBuffer = await convertWordToPdf(file.buffer);
       return pdfBuffer;
     } catch (err) {
-      console.error("High-quality Word to PDF conversion failed, using fallback:", err.message);
+      console.error("High-quality Word to PDF conversion failed, using basic raw text fallback:", err.message);
       try {
         const result = await mammoth.extractRawText({ buffer: file.buffer });
         const pdfBytes = await createPdfFromText(result.value);
@@ -553,26 +553,74 @@ async function convertPdfToPptPython(pdfBuffer) {
   }
 }
 
-async function convertWordToPdfPs(docxBuffer) {
+export async function convertWordToPdf(docxBuffer) {
   const tmpDir = os.tmpdir();
   const id = uuidv4();
   const docxPath = path.join(tmpDir, `${id}.docx`);
   const pdfPath = path.join(tmpDir, `${id}.pdf`);
 
+  await fs.writeFile(docxPath, docxBuffer);
+
   try {
-    await fs.writeFile(docxPath, docxBuffer);
-    const psScript = path.join(__dirname, "../utils/wordToPdf.ps1");
-    
-    // Run PowerShell script
-    await execFile("powershell", [
-      "-ExecutionPolicy", "Bypass",
-      "-File", psScript,
-      "-inputPath", docxPath,
-      "-outputPath", pdfPath
-    ]);
-    
-    const pdfBuffer = await fs.readFile(pdfPath);
-    return pdfBuffer;
+    if (process.platform === "win32") {
+      // 1. Try high-quality PowerShell/Word conversion first on Windows with a 15s safety timeout
+      try {
+        const psScript = path.join(__dirname, "../utils/wordToPdf.ps1");
+        await execFile("powershell", [
+          "-ExecutionPolicy", "Bypass",
+          "-File", psScript,
+          "-inputPath", docxPath,
+          "-outputPath", pdfPath
+        ], { timeout: 15000 }); // 15 seconds safety timeout against COM hangs
+        const pdfBuffer = await fs.readFile(pdfPath);
+        return pdfBuffer;
+      } catch (errWin) {
+        console.error("Windows MS Word COM conversion failed/timed out, trying LibreOffice headless fallback:", errWin.message);
+        // 2. Try LibreOffice headless on Windows if available
+        try {
+          await execFile("soffice", [
+            "--headless",
+            "--convert-to", "pdf",
+            "--outdir", tmpDir,
+            docxPath
+          ], { timeout: 25000 });
+          const pdfBuffer = await fs.readFile(pdfPath);
+          return pdfBuffer;
+        } catch (errLibreWin) {
+          console.error("Windows LibreOffice headless conversion failed:", errLibreWin.message);
+          throw new Error("No high-quality conversion tool succeeded on Windows.");
+        }
+      }
+    } else {
+      // Linux/macOS
+      // 1. Try 'libreoffice'
+      try {
+        await execFile("libreoffice", [
+          "--headless",
+          "--convert-to", "pdf",
+          "--outdir", tmpDir,
+          docxPath
+        ], { timeout: 30000 });
+        const pdfBuffer = await fs.readFile(pdfPath);
+        return pdfBuffer;
+      } catch (errLibre) {
+        console.warn("Linux 'libreoffice' failed, trying 'soffice'...", errLibre.message);
+        // 2. Try 'soffice'
+        try {
+          await execFile("soffice", [
+            "--headless",
+            "--convert-to", "pdf",
+            "--outdir", tmpDir,
+            docxPath
+          ], { timeout: 30000 });
+          const pdfBuffer = await fs.readFile(pdfPath);
+          return pdfBuffer;
+        } catch (errSoffice) {
+          console.error("Linux 'soffice' failed:", errSoffice.message);
+          throw new Error("No high-quality conversion tool succeeded on Linux.");
+        }
+      }
+    }
   } finally {
     try { await fs.unlink(docxPath); } catch (e) {}
     try { await fs.unlink(pdfPath); } catch (e) {}
