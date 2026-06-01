@@ -554,7 +554,8 @@ async function convertPdfToPptPython(pdfBuffer) {
 }
 
 export async function convertWordToPdf(docxBuffer) {
-  const tmpDir = os.tmpdir();
+  const tmpDir = path.join(__dirname, "../../temp");
+  await fs.mkdir(tmpDir, { recursive: true });
   const id = uuidv4();
   const docxPath = path.join(tmpDir, `${id}.docx`);
   const pdfPath = path.join(tmpDir, `${id}.pdf`);
